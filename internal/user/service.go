@@ -1,0 +1,77 @@
+package user
+
+import (
+	"context"
+
+	"github.com/rrab-0/its-gram/internal"
+)
+
+type userService struct {
+	repo Repository
+}
+
+func NewService(repo Repository) Service {
+	return userService{
+		repo: repo,
+	}
+}
+
+func (s userService) CreateUser(ctx context.Context, username, email, picture string) (internal.User, error) {
+	user := internal.User{
+		Username:    username,
+		Email:       email,
+		PictureLink: picture,
+	}
+
+	user, err := s.repo.CreateUser(ctx, user)
+	if err != nil {
+		return internal.User{}, err
+	}
+
+	return user, nil
+}
+
+func (s userService) GetUser(ctx context.Context, reqUri internal.UserIdUriRequest) (internal.User, error) {
+	user, err := s.repo.GetUser(ctx, reqUri.UserId)
+	if err != nil {
+		return internal.User{}, err
+	}
+
+	return user, nil
+}
+
+func (s userService) SearchUser(ctx context.Context, reqQuery UserSearchRequest) ([]internal.User, error) {
+	users, err := s.repo.SearchUser(ctx, reqQuery.Username)
+	if err != nil {
+		return []internal.User{}, err
+	}
+
+	return users, nil
+}
+
+func (s userService) GetUserHomepage(ctx context.Context, reqUri internal.UserIdUriRequest) ([]internal.Post, error) {
+	posts, err := s.repo.GetUserHomepage(ctx, reqUri.UserId)
+	if err != nil {
+		return []internal.Post{}, err
+	}
+
+	return posts, nil
+}
+
+func (s userService) UpdateUserProfile(ctx context.Context, reqUri internal.UserIdUriRequest, reqBody UpdateUserProfileRequest) (internal.User, error) {
+	user, err := s.repo.UpdateUserProfile(ctx, reqUri.UserId, reqBody.Username, reqBody.PictureLink)
+	if err != nil {
+		return internal.User{}, err
+	}
+
+	return user, nil
+}
+
+func (s userService) DeleteUser(ctx context.Context, reqUri internal.UserIdUriRequest) (internal.User, error) {
+	user, err := s.repo.DeleteUser(ctx, reqUri.UserId)
+	if err != nil {
+		return internal.User{}, err
+	}
+
+	return user, nil
+}
