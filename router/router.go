@@ -35,17 +35,22 @@ func Setup(r *gin.Engine, firebaseAuth *internal.FirebaseAuth, userHandler user.
 		validateToken = firebaseAuth.ValidateToken("")
 	}
 
+	// NOTE: ":id" here is user_id from context which is from firebase auth idToken
 	v1 := r.Group("/api/v1")
 	user := v1.Group("/user")
 	{
 		user.GET("/:id", userHandler.GetUser)
-		user.GET("/search", userHandler.SearchUser) // TODO: check if working
+		user.GET("/:id/likes", userHandler.GetLikes) // TODO: check if working
+		user.GET("/search", userHandler.SearchUser)
 		user.POST("/register/:id", validateRegisterToken, userHandler.CreateUser)
 
 		user.Use(validateToken)
-		user.GET("/:id/homepage", userHandler.GetUserHomepage) // TODO: check if working
+		user.GET("/:id/homepage", userHandler.GetUserHomepage)
 		user.PATCH("/profile/update/:id", userHandler.UpdateUserProfile)
 		user.DELETE("/delete/:id", userHandler.DeleteUser)
+
+		user.POST("/:id/follow/:otherUserId", userHandler.FollowOtherUser)
+		user.DELETE("/:id/unfollow/:otherUserId", userHandler.UnfollowOtherUser)
 	}
 
 	post := v1.Group("/post")
@@ -55,5 +60,13 @@ func Setup(r *gin.Engine, firebaseAuth *internal.FirebaseAuth, userHandler user.
 
 		post.Use(validateToken)
 		post.POST("/create/:id", postHandler.CreatePost)
+		post.DELETE("/user/:id/delete/:postId", postHandler.DeletePost)
+
+		post.POST("/user/:id/like/:postId", postHandler.LikePost)       // TODO: check if working
+		post.DELETE("/user/:id/unlike/:postId", postHandler.UnlikePost) // TODO: check if working
+
+		// TODO: might need to add Comments field in User struct
+		post.POST("/user/:id/comment/:postId", postHandler.CommentPost)       // TODO: check if working
+		post.DELETE("/user/:id/uncomment/:postId", postHandler.UncommentPost) // TODO: check if working
 	}
 }

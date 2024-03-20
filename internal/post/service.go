@@ -3,6 +3,7 @@ package post
 import (
 	"context"
 
+	"github.com/google/uuid"
 	"github.com/rrab-0/its-gram/internal"
 )
 
@@ -47,4 +48,29 @@ func (s postService) GetPostById(ctx context.Context, reqUri PostIdUriRequest) (
 	}
 
 	return post, nil
+}
+
+func (s postService) DeletePost(ctx context.Context, reqUri PostAndUserUriRequest) error {
+	postId, _ := uuid.Parse(reqUri.PostId)
+	return s.repo.DeletePost(ctx, reqUri.UserId, postId)
+}
+
+func (s postService) LikePost(ctx context.Context, reqUri PostAndUserUriRequest) error {
+	postId, _ := uuid.Parse(reqUri.PostId)
+	return s.repo.LikePost(ctx, reqUri.UserId, postId)
+}
+
+func (s postService) UnlikePost(ctx context.Context, reqUri PostAndUserUriRequest) error {
+	postId, _ := uuid.Parse(reqUri.PostId)
+	return s.repo.LikePost(ctx, reqUri.UserId, postId)
+}
+
+func (s postService) CommentPost(ctx context.Context, reqUri PostAndUserUriRequest) error {
+	postId, _ := uuid.Parse(reqUri.PostId)
+	return s.repo.LikePost(ctx, reqUri.UserId, postId)
+}
+
+func (s postService) UncommentPost(ctx context.Context, reqUri PostAndUserUriRequest) error {
+	postId, _ := uuid.Parse(reqUri.PostId)
+	return s.repo.LikePost(ctx, reqUri.UserId, postId)
 }

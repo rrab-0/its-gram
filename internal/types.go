@@ -5,17 +5,18 @@ import (
 
 	"github.com/google/uuid"
 	"gorm.io/gorm"
+	"gorm.io/gorm/clause"
 )
 
 type Comment struct {
-	ID        uuid.UUID      `json:"id" uri:"id" gorm:"primaryKey;type:uuid;default:gen_random_uuid()"`
+	ID        uuid.UUID      `json:"id" gorm:"primaryKey;type:uuid;default:gen_random_uuid()"`
 	CreatedAt time.Time      `json:"-"`
 	UpdatedAt time.Time      `json:"-"`
 	DeletedAt gorm.DeletedAt `json:"-" gorm:"index"`
 
 	// "comment" belongs to "user"
-	CreatedBy User      `json:"created_by" gorm:"foreignKey:UserID;not null"`
-	UserID    uuid.UUID `json:"-" gorm:"type:uuid;not null"`
+	CreatedBy User   `json:"created_by" gorm:"foreignKey:UserID;not null"`
+	UserID    string `json:"-" gorm:"type:unique;not null"`
 
 	// "comment" belongs to "post" (comment "created in" post)
 	CreatedIn       Post      `json:"created_in" gorm:"foreignKey:PostCreatedInID;not null"`
@@ -33,20 +34,14 @@ type Comment struct {
 }
 
 type Post struct {
-	ID        uuid.UUID      `json:"id" uri:"id" gorm:"primaryKey;type:uuid;default:gen_random_uuid()"`
+	ID        uuid.UUID      `json:"id" gorm:"primaryKey;type:uuid;default:gen_random_uuid()"`
 	CreatedAt time.Time      `json:"-"`
 	UpdatedAt time.Time      `json:"-"`
 	DeletedAt gorm.DeletedAt `json:"-" gorm:"index"`
 
-	// // "user" has many "posts"
-	// UserPostsRefer uuid.UUID `json:"-" gorm:"type:uuid;not null"`
-
-	// // "user" has many "(liked) posts"
-	// UserLikedPostsRefer uuid.UUID `json:"-" gorm:"type:uuid;not null"`
-
 	// "post" belongs to "user"
-	CreatedBy User      `json:"created_by" gorm:"foreignKey:UserID;references:ID;not null"`
-	UserID    uuid.UUID `json:"-" gorm:"type:uuid;not null"`
+	CreatedBy User   `json:"created_by" gorm:"foreignKey:UserID;references:ID;not null"`
+	UserID    string `json:"-" gorm:"type:unique;not null"`
 
 	PictureLink string `json:"picture_link" gorm:"not null"`
 	Title       string `json:"title" gorm:"not null"`
@@ -58,7 +53,7 @@ type Post struct {
 }
 
 type User struct {
-	ID        uuid.UUID      `json:"id" uri:"id" gorm:"primaryKey;type:uuid;default:gen_random_uuid()"`
+	ID        string         `json:"id" gorm:"primaryKey;"`
 	CreatedAt time.Time      `json:"-"`
 	UpdatedAt time.Time      `json:"-"`
 	DeletedAt gorm.DeletedAt `json:"-" gorm:"index"`
@@ -71,9 +66,13 @@ type User struct {
 	LikedPosts []Post  `json:"liked_posts" gorm:"many2many:user_liked_posts;"` // "user" has many "(liked) posts"
 	Followers  []*User `json:"followers" gorm:"many2many:user_followers;"`     // "user" many to many "user"
 	Followings []*User `json:"followings" gorm:"many2many:user_followings;"`   // "user" many to many "user"
+}
 
-	// Posts      []Post  `json:"posts" gorm:"foreignKey:UserPostsRefer"`            // "user" has many "posts"
-	// LikedPosts []Post  `json:"liked_posts" gorm:"foreignKey:UserLikedPostsRefer"` // "user" has many "(liked) posts"
+func (u *User) BeforeCreate(tx *gorm.DB) error {
+	if u.DeletedAt.Valid {
+		tx.Clauses(clause.OnConflict{DoNothing: true})
+	}
+	return nil
 }
 
 type UserIdUriRequest struct {

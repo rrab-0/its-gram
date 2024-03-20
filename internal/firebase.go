@@ -82,7 +82,7 @@ func (f *FirebaseAuth) ValidateToken(funcType string) gin.HandlerFunc {
 		}
 
 		if funcType == "REGISTER" {
-			// ctx.Set("user_id", idToken.Claims["user_id"])
+			ctx.Set("user_id", idToken.Claims["user_id"])
 			ctx.Set("username", idToken.Claims["name"])
 			ctx.Set("email", idToken.Claims["email"])
 			ctx.Set("picture", idToken.Claims["picture"])
@@ -119,6 +119,7 @@ func (f *FirebaseAuth) ValidateNgrokDevToken(funcType string) gin.HandlerFunc {
 		}
 
 		if funcType == "REGISTER" {
+			ctx.Set("user_id", idToken.Claims["user_id"])
 			ctx.Set("username", idToken.Claims["name"])
 			ctx.Set("email", idToken.Claims["email"])
 			ctx.Set("picture", idToken.Claims["picture"])
@@ -127,13 +128,21 @@ func (f *FirebaseAuth) ValidateNgrokDevToken(funcType string) gin.HandlerFunc {
 	}
 }
 
+var dummyUserCount = 1
+
+// Checks if userId (doesn't have to be valid) is present in URI request or not,
+// if present sets random values in contexts needed.
 func (f *FirebaseAuth) ValidateDevToken(funcType string) gin.HandlerFunc {
 	return func(ctx *gin.Context) {
 		var (
-			username = "jasa pedia"
-			email    = "jasapedia@gmail.com"
-			picture  = "https://lh3.googleusercontent.com/a/ACg8ocL3ls0l2jiZ6rRuYV8NDhtGF2O2QOHHtbFTjwu63u9X=s96-c"
+			firebaseId = fmt.Sprintf("%d", dummyUserCount)
+			username   = fmt.Sprintf("dummy%v", dummyUserCount)
+			email      = fmt.Sprintf("dummy%v@gmail.com", dummyUserCount)
+			picture    = ""
 		)
+
+		dummyUserCount++
+
 		id := ctx.Param("id")
 		if id == "" {
 			ctx.AbortWithStatusJSON(http.StatusUnauthorized, ErrorResponse{
@@ -148,6 +157,7 @@ func (f *FirebaseAuth) ValidateDevToken(funcType string) gin.HandlerFunc {
 		}
 
 		if funcType == "REGISTER" {
+			ctx.Set("user_id", firebaseId)
 			ctx.Set("username", username)
 			ctx.Set("email", email)
 			ctx.Set("picture", picture)

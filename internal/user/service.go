@@ -16,8 +16,9 @@ func NewService(repo Repository) Service {
 	}
 }
 
-func (s userService) CreateUser(ctx context.Context, username, email, picture string) (internal.User, error) {
+func (s userService) CreateUser(ctx context.Context, firebaseId, username, email, picture string) (internal.User, error) {
 	user := internal.User{
+		ID:          firebaseId,
 		Username:    username,
 		Email:       email,
 		PictureLink: picture,
@@ -74,4 +75,21 @@ func (s userService) DeleteUser(ctx context.Context, reqUri internal.UserIdUriRe
 	}
 
 	return user, nil
+}
+
+func (s userService) FollowOtherUser(ctx context.Context, reqUri FollowOtherUserRequest) error {
+	return s.repo.FollowOtherUser(ctx, reqUri.UserId, reqUri.OtherUserId)
+}
+
+func (s userService) UnfollowOtherUser(ctx context.Context, reqUri FollowOtherUserRequest) error {
+	return s.repo.UnfollowOtherUser(ctx, reqUri.UserId, reqUri.OtherUserId)
+}
+
+func (s userService) GetLikes(ctx context.Context, reqUri internal.UserIdUriRequest) ([]internal.Post, error) {
+	likes, err := s.repo.GetLikes(ctx, reqUri.UserId)
+	if err != nil {
+		return []internal.Post{}, err
+	}
+
+	return likes, nil
 }

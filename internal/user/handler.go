@@ -20,11 +20,12 @@ func NewHandler(db *gorm.DB) Handler {
 }
 
 func (h Handler) CreateUser(ctx *gin.Context) {
+	firebaseId, fExists := ctx.Get("user_id")
 	username, uExists := ctx.Get("username")
 	email, eExists := ctx.Get("email")
 	picture, pExists := ctx.Get("picture")
 
-	if !uExists || !eExists {
+	if !fExists || !uExists || !eExists {
 		ctx.AbortWithStatusJSON(http.StatusUnauthorized, &internal.ErrorResponse{
 			Message: "Failed to register.",
 			Error:   "invalid token",
@@ -39,7 +40,7 @@ func (h Handler) CreateUser(ctx *gin.Context) {
 		profilePicture = picture.(string)
 	}
 
-	user, err := h.Service.CreateUser(ctx.Request.Context(), username.(string), email.(string), profilePicture)
+	user, err := h.Service.CreateUser(ctx.Request.Context(), firebaseId.(string), username.(string), email.(string), profilePicture)
 	if err != nil {
 		if err == gorm.ErrDuplicatedKey {
 			ctx.AbortWithStatusJSON(http.StatusConflict, internal.ErrorResponse{
@@ -97,7 +98,7 @@ func (h Handler) GetUser(ctx *gin.Context) {
 
 func (h Handler) SearchUser(ctx *gin.Context) {
 	var reqQuery UserSearchRequest
-	if err := ctx.ShouldBindUri(&reqQuery); err != nil {
+	if err := ctx.Bind(&reqQuery); err != nil {
 		ctx.AbortWithStatusJSON(http.StatusBadRequest, &internal.ErrorResponse{
 			Message: "Invalid request.",
 			Error:   internal.GenerateRequestValidatorError(err).Error(),
@@ -275,13 +276,144 @@ func (h Handler) DeleteUser(ctx *gin.Context) {
 		}
 
 		ctx.AbortWithStatusJSON(http.StatusInternalServerError, internal.ErrorResponse{
-			Message: "Failed to delete User.",
+			Message: "Failed to delete user.",
 			Error:   err.Error(),
 		})
 		return
 	}
 
 	ctx.JSON(http.StatusOK, internal.SuccessResponse{
-		Message: fmt.Sprintf("User with id %v deleted successfully", reqUri.UserId),
+		Message: fmt.Sprintf("User with id %v deleted successfully.", reqUri.UserId),
+	})
+}
+
+func (h Handler) FollowOtherUser(ctx *gin.Context) {
+	var reqUri FollowOtherUserRequest
+	if err := ctx.ShouldBindUri(&reqUri); err != nil {
+		ctx.AbortWithStatusJSON(http.StatusBadRequest, &internal.ErrorResponse{
+			Message: "Invalid request.",
+			Error:   internal.GenerateRequestValidatorError(err).Error(),
+		})
+		return
+	}
+
+	userId, idExists := ctx.Get("user_id")
+	if !idExists {
+		ctx.AbortWithStatusJSON(http.StatusUnauthorized, &internal.ErrorResponse{
+			Message: "Failed to follow user.",
+			Error:   "invalid token",
+		})
+		return
+	}
+
+	if reqUri.UserId != userId {
+		ctx.AbortWithStatusJSON(http.StatusForbidden, &internal.ErrorResponse{
+			Message: "Failed to follow user.",
+			Error:   "invalid token",
+		})
+		return
+	}
+
+	err := h.Service.FollowOtherUser(ctx.Request.Context(), reqUri)
+	if err != nil {
+		if err == gorm.ErrRecordNotFound {
+			ctx.AbortWithStatusJSON(http.StatusNotFound, internal.ErrorResponse{
+				Message: "Failed to follow user, user not found.",
+				Error:   err.Error(),
+			})
+			return
+		}
+
+		ctx.AbortWithStatusJSON(http.StatusInternalServerError, internal.ErrorResponse{
+			Message: "Failed to follow user.",
+			Error:   err.Error(),
+		})
+		return
+	}
+
+	ctx.JSON(http.StatusOK, internal.SuccessResponse{
+		Message: fmt.Sprintf("User with id %v successfully followed user with id %v.", reqUri.UserId, reqUri.OtherUserId),
+	})
+}
+
+func (h Handler) UnfollowOtherUser(ctx *gin.Context) {
+	var reqUri FollowOtherUserRequest
+	if err := ctx.ShouldBindUri(&reqUri); err != nil {
+		ctx.AbortWithStatusJSON(http.StatusBadRequest, &internal.ErrorResponse{
+			Message: "Invalid request.",
+			Error:   internal.GenerateRequestValidatorError(err).Error(),
+		})
+		return
+	}
+
+	userId, idExists := ctx.Get("user_id")
+	if !idExists {
+		ctx.AbortWithStatusJSON(http.StatusUnauthorized, &internal.ErrorResponse{
+			Message: "Failed to unfollow user.",
+			Error:   "invalid token",
+		})
+		return
+	}
+
+	if reqUri.UserId != userId {
+		ctx.AbortWithStatusJSON(http.StatusForbidden, &internal.ErrorResponse{
+			Message: "Failed to unfollow user.",
+			Error:   "invalid token",
+		})
+		return
+	}
+
+	err := h.Service.UnfollowOtherUser(ctx.Request.Context(), reqUri)
+	if err != nil {
+		if err == gorm.ErrRecordNotFound {
+			ctx.AbortWithStatusJSON(http.StatusNotFound, internal.ErrorResponse{
+				Message: "Failed to unfollow user, user not found.",
+				Error:   err.Error(),
+			})
+			return
+		}
+
+		ctx.AbortWithStatusJSON(http.StatusInternalServerError, internal.ErrorResponse{
+			Message: "Failed to unfollow user.",
+			Error:   err.Error(),
+		})
+		return
+	}
+
+	ctx.JSON(http.StatusOK, internal.SuccessResponse{
+		Message: fmt.Sprintf("User with id %v successfully unfollowed user with id %v.", reqUri.UserId, reqUri.OtherUserId),
+	})
+}
+
+func (h Handler) GetLikes(ctx *gin.Context) {
+	var reqUri internal.UserIdUriRequest
+	if err := ctx.ShouldBindUri(&reqUri); err != nil {
+		ctx.AbortWithStatusJSON(http.StatusBadRequest, &internal.ErrorResponse{
+			Message: "Invalid request.",
+			Error:   internal.GenerateRequestValidatorError(err).Error(),
+		})
+		return
+	}
+
+	likes, err := h.Service.GetLikes(ctx.Request.Context(), reqUri)
+	if err != nil {
+		if err == gorm.ErrRecordNotFound {
+			ctx.AbortWithStatusJSON(http.StatusNotFound, internal.ErrorResponse{
+				Message: "Failed to fetch user's likes, likes not found.",
+				Error:   err.Error(),
+			})
+			return
+		}
+
+		ctx.AbortWithStatusJSON(http.StatusInternalServerError, internal.ErrorResponse{
+			Message: "Failed to fetch user's likes.",
+			Error:   err.Error(),
+		})
+		return
+	}
+
+	ctx.JSON(http.StatusOK, internal.SuccessResponse{
+		Message: "User's likes fetched successfully.",
+		Data:    likes,
 	})
 }
