@@ -32,19 +32,30 @@ func main() {
 		log.Fatalf("ERROR: Failed to migrate PostgreSQL: %v", err.Error())
 	}
 
-	firebaseAuth, err := internal.NewFirebaseAuth(os.Getenv("SERVICE_ACCOUNT_KEY_PATH"))
+	firebase, err := internal.NewFirebaseApp(os.Getenv("SERVICE_ACCOUNT_KEY_PATH"))
+	if err != nil {
+		log.Fatalf("ERROR: Failed to initialize firebase app: %v", err.Error())
+	}
+
+	firebaseAuth, err := internal.NewFirebaseAuth(firebase.App)
 	if err != nil {
 		log.Fatalf("ERROR: Failed to initialize firebase auth: %v", err.Error())
 	}
 
+	firebaseStorage, err := internal.NewFirebaseStorage(firebase.App)
+	if err != nil {
+		log.Fatalf("ERROR: Failed to initialize firebase storage: %v", err.Error())
+	}
+
 	userHandler := user.NewHandler(pgsql.DB)
-	postHandler := post.NewHandler(pgsql.DB)
+	postHandler := post.NewHandler(pgsql.DB, *firebaseStorage)
 
 	gin.ForceConsoleColor()
 	r := gin.Default()
 	router.Setup(
 		r,
 		firebaseAuth,
+		firebaseStorage,
 		userHandler,
 		postHandler,
 	)
