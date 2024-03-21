@@ -93,3 +93,12 @@ func (s userService) GetLikes(ctx context.Context, reqUri internal.UserIdUriRequ
 
 	return likes, nil
 }
+
+func (s userService) GetComments(ctx context.Context, reqUri internal.UserIdUriRequest) ([]internal.Comment, error) {
+	comments, err := s.repo.GetComments(ctx, reqUri.UserId)
+	if err != nil {
+		return []internal.Comment{}, err
+	}
+
+	return comments, nil
+}

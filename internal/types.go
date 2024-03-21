@@ -10,9 +10,9 @@ import (
 
 type Comment struct {
 	ID        uuid.UUID      `json:"id" gorm:"primaryKey;type:uuid;default:gen_random_uuid()"`
-	CreatedAt time.Time      `json:"-"`
-	UpdatedAt time.Time      `json:"-"`
-	DeletedAt gorm.DeletedAt `json:"-" gorm:"index"`
+	CreatedAt time.Time      `json:"created_at"`
+	UpdatedAt time.Time      `json:"updated_at"`
+	DeletedAt gorm.DeletedAt `json:"deleted_at" gorm:"index"`
 
 	// "comment" belongs to "user"
 	CreatedBy User   `json:"created_by" gorm:"foreignKey:UserID;not null"`
@@ -26,7 +26,8 @@ type Comment struct {
 	PostID uuid.UUID `json:"-" gorm:"type:uuid;not null"`
 
 	Description string `json:"description"`
-	Likes       int64  `json:"likes"`
+	// TODO: might need to change this to []User just like at post
+	Likes int64 `json:"likes"`
 
 	// "comments" has many "comments"
 	Replies  []Comment  `json:"replies" gorm:"foreignKey:ParentID;"`
@@ -35,9 +36,9 @@ type Comment struct {
 
 type Post struct {
 	ID        uuid.UUID      `json:"id" gorm:"primaryKey;type:uuid;default:gen_random_uuid()"`
-	CreatedAt time.Time      `json:"-"`
-	UpdatedAt time.Time      `json:"-"`
-	DeletedAt gorm.DeletedAt `json:"-" gorm:"index"`
+	CreatedAt time.Time      `json:"created_at"`
+	UpdatedAt time.Time      `json:"updated_at"`
+	DeletedAt gorm.DeletedAt `json:"deleted_at" gorm:"index"`
 
 	// "post" belongs to "user"
 	CreatedBy User   `json:"created_by" gorm:"foreignKey:UserID;references:ID;not null"`
@@ -46,7 +47,9 @@ type Post struct {
 	PictureLink string `json:"picture_link" gorm:"not null"`
 	Title       string `json:"title" gorm:"not null"`
 	Description string `json:"description"`
-	Likes       int64  `json:"likes"`
+
+	// "user" many to many "(liked) posts" with Back-Reference
+	Likes []*User `json:"likes" gorm:"many2many:user_liked_posts;"`
 
 	// "post" has many "comments"
 	Comments []Comment `json:"comments" gorm:"foreignKey:PostID;"`
@@ -63,7 +66,7 @@ type User struct {
 	PictureLink string `json:"picture_link"`
 
 	Posts      []Post  `json:"posts" gorm:"foreignKey:UserID;references:ID"`   // "user" has many "posts"
-	LikedPosts []Post  `json:"liked_posts" gorm:"many2many:user_liked_posts;"` // "user" has many "(liked) posts"
+	LikedPosts []*Post `json:"liked_posts" gorm:"many2many:user_liked_posts;"` // "user" many to many "(liked) posts" with Back-Reference
 	Followers  []*User `json:"followers" gorm:"many2many:user_followers;"`     // "user" many to many "user"
 	Followings []*User `json:"followings" gorm:"many2many:user_followings;"`   // "user" many to many "user"
 }

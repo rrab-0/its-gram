@@ -2,9 +2,11 @@ package post
 
 import (
 	"context"
+	"time"
 
 	"github.com/google/uuid"
 	"github.com/rrab-0/its-gram/internal"
+	"gorm.io/gorm"
 )
 
 type PostIdUriRequest struct {
@@ -22,24 +24,78 @@ type PostAndUserUriRequest struct {
 	PostId string `uri:"postId" binding:"required,uuid"`
 }
 
+type CreateCommentRequest struct {
+	Description string `json:"description" binding:"required"`
+}
+
+type CommentAndUserUriRequest struct {
+	UserId    string `uri:"id" binding:"required"`
+	CommentId string `uri:"commentId" binding:"required,uuid"`
+}
+
+type DeletedCommentResponse struct {
+	ID        uuid.UUID      `json:"id"`
+	CreatedAt time.Time      `json:"created_at"`
+	UpdatedAt time.Time      `json:"updated_at"`
+	DeletedAt gorm.DeletedAt `json:"deleted_at"`
+	IsDeleted bool           `json:"is_deleted"`
+	CreatedBy internal.User  `json:"created_by"`
+}
+
+type GetPostByIdResponse struct {
+	ID          uuid.UUID        `json:"id"`
+	CreatedAt   time.Time        `json:"created_at"`
+	CreatedBy   internal.User    `json:"created_by"`
+	PictureLink string           `json:"picture_link"`
+	Title       string           `json:"title"`
+	Description string           `json:"description"`
+	Likes       []*internal.User `json:"likes"`
+	Comments    []interface{}    `json:"comments"`
+}
+
+type GetCommentRequest struct {
+	CommentId string `uri:"commentId" binding:"required,uuid"`
+}
+
+type GetCommentResponse struct {
+	ID          uuid.UUID      `json:"id"`
+	CreatedAt   time.Time      `json:"created_at"`
+	UpdatedAt   time.Time      `json:"updated_at"`
+	DeletedAt   gorm.DeletedAt `json:"deleted_at"`
+	CreatedBy   internal.User  `json:"created_by"`
+	Description string         `json:"description"`
+	Likes       int64          `json:"likes"`
+	Replies     []interface{}  `json:"replies"`
+}
+
 type Repository interface {
-	GetUserPosts(ctx context.Context, userId string) ([]internal.Post, error)
 	GetPostById(ctx context.Context, id string) (internal.Post, error)
+
 	CreatePost(ctx context.Context, userId string, post internal.Post) (internal.Post, error)
 	DeletePost(ctx context.Context, userId string, postId uuid.UUID) error
+
 	LikePost(ctx context.Context, userId string, postId uuid.UUID) error
 	UnlikePost(ctx context.Context, userId string, postId uuid.UUID) error
-	CommentPost(ctx context.Context, userId string, postId uuid.UUID) error
-	UncommentPost(ctx context.Context, userId string, postId uuid.UUID) error
+
+	GetComment(ctx context.Context, commentId uuid.UUID) (internal.Comment, error)
+	CommentPost(ctx context.Context, userId, description string, postId uuid.UUID) error
+	UncommentPost(ctx context.Context, userId string, commentId uuid.UUID) error
+	ReplyComment(ctx context.Context, userId, description string, commentId uuid.UUID) error
+	RemoveReplyFromComment(ctx context.Context, userId string, commentId uuid.UUID) error
 }
 
 type Service interface {
-	CreatePost(ctx context.Context, reqUri internal.UserIdUriRequest, reqBody CreatePostRequest) (internal.Post, error)
-	GetUserPosts(ctx context.Context, reqUri internal.UserIdUriRequest) ([]internal.Post, error)
 	GetPostById(ctx context.Context, reqUri PostIdUriRequest) (internal.Post, error)
+
+	CreatePost(ctx context.Context, reqUri internal.UserIdUriRequest, reqBody CreatePostRequest) (internal.Post, error)
 	DeletePost(ctx context.Context, reqUri PostAndUserUriRequest) error
+
 	LikePost(ctx context.Context, reqUri PostAndUserUriRequest) error
 	UnlikePost(ctx context.Context, reqUri PostAndUserUriRequest) error
-	CommentPost(ctx context.Context, reqUri PostAndUserUriRequest) error
-	UncommentPost(ctx context.Context, reqUri PostAndUserUriRequest) error
+
+	GetComment(ctx context.Context, reqUri GetCommentRequest) (internal.Comment, error)
+	CommentPost(ctx context.Context, reqUri PostAndUserUriRequest, reqBody CreateCommentRequest) error
+	UncommentPost(ctx context.Context, reqUri CommentAndUserUriRequest) error
+	ReplyComment(ctx context.Context, reqUri CommentAndUserUriRequest, reqBody CreateCommentRequest) error
+	RemoveReplyFromComment(ctx context.Context, reqUri CommentAndUserUriRequest) error
 }

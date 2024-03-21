@@ -78,41 +78,11 @@ func (h Handler) CreatePost(ctx *gin.Context) {
 	})
 }
 
-func (h Handler) GetUserPosts(ctx *gin.Context) {
-	var reqUri internal.UserIdUriRequest
-	if err := ctx.ShouldBindUri(&reqUri); err != nil {
-		ctx.AbortWithStatusJSON(http.StatusBadRequest, &internal.ErrorResponse{
-			Message: "Invalid request.",
-			Error:   internal.GenerateRequestValidatorError(err).Error(),
-		})
-		return
-	}
-
-	post, err := h.Service.GetUserPosts(ctx.Request.Context(), reqUri)
-	if err != nil {
-		if err == gorm.ErrRecordNotFound {
-			ctx.AbortWithStatusJSON(http.StatusNotFound, internal.ErrorResponse{
-				Message: "Failed to fetch posts, user or posts not found.",
-				Error:   err.Error(),
-			})
-			return
-		}
-
-		ctx.AbortWithStatusJSON(http.StatusInternalServerError, internal.ErrorResponse{
-			Message: "Failed to fetch posts.",
-			Error:   err.Error(),
-		})
-		return
-	}
-
-	ctx.JSON(http.StatusOK, internal.SuccessResponse{
-		Message: "Posts fetched successfully",
-		Data:    post,
-	})
-}
-
 func (h Handler) GetPostById(ctx *gin.Context) {
-	var reqUri PostIdUriRequest
+	var (
+		reqUri  PostIdUriRequest
+		postRes GetPostByIdResponse
+	)
 	if err := ctx.ShouldBindUri(&reqUri); err != nil {
 		ctx.AbortWithStatusJSON(http.StatusBadRequest, &internal.ErrorResponse{
 			Message: "Invalid request.",
@@ -138,9 +108,33 @@ func (h Handler) GetPostById(ctx *gin.Context) {
 		return
 	}
 
+	postRes.ID = post.ID
+	postRes.CreatedAt = post.CreatedAt
+	postRes.CreatedBy = post.CreatedBy
+	postRes.PictureLink = post.PictureLink
+	postRes.Title = post.Title
+	postRes.Description = post.Description
+	postRes.Likes = post.Likes
+
+	for _, comment := range post.Comments {
+		if !comment.DeletedAt.Valid {
+			postRes.Comments = append(postRes.Comments, comment)
+			continue
+		}
+
+		var deletedCommentRes DeletedCommentResponse
+		deletedCommentRes.ID = comment.ID
+		deletedCommentRes.CreatedAt = comment.CreatedAt
+		deletedCommentRes.UpdatedAt = comment.UpdatedAt
+		deletedCommentRes.DeletedAt = comment.DeletedAt
+		deletedCommentRes.IsDeleted = true
+		deletedCommentRes.CreatedBy = comment.CreatedBy
+		postRes.Comments = append(postRes.Comments, deletedCommentRes)
+	}
+
 	ctx.JSON(http.StatusOK, internal.SuccessResponse{
-		Message: "Post fetched successfully",
-		Data:    post,
+		Message: "Post fetched successfully.",
+		Data:    postRes,
 	})
 }
 
@@ -267,9 +261,78 @@ func (h Handler) UnlikePost(ctx *gin.Context) {
 	})
 }
 
+func (h Handler) GetComment(ctx *gin.Context) {
+	var (
+		reqUri     GetCommentRequest
+		commentRes GetCommentResponse
+	)
+	if err := ctx.ShouldBindUri(&reqUri); err != nil {
+		ctx.AbortWithStatusJSON(http.StatusBadRequest, &internal.ErrorResponse{
+			Message: "Invalid request.",
+			Error:   internal.GenerateRequestValidatorError(err).Error(),
+		})
+		return
+	}
+
+	comment, err := h.Service.GetComment(ctx.Request.Context(), reqUri)
+	if err != nil {
+		if err == gorm.ErrRecordNotFound {
+			ctx.AbortWithStatusJSON(http.StatusNotFound, internal.ErrorResponse{
+				Message: "Failed to fetch comment, comment not found.",
+				Error:   err.Error(),
+			})
+			return
+		}
+
+		ctx.AbortWithStatusJSON(http.StatusInternalServerError, internal.ErrorResponse{
+			Message: "Failed to fetch comment.",
+			Error:   err.Error(),
+		})
+		return
+	}
+
+	commentRes.ID = comment.ID
+	commentRes.CreatedAt = comment.CreatedAt
+	commentRes.UpdatedAt = comment.UpdatedAt
+	commentRes.DeletedAt = comment.DeletedAt
+	commentRes.CreatedBy = comment.CreatedBy
+	commentRes.Description = comment.Description
+	commentRes.Likes = comment.Likes
+
+	for _, reply := range comment.Replies {
+		if !reply.DeletedAt.Valid {
+			commentRes.Replies = append(commentRes.Replies, reply)
+			continue
+		}
+
+		var deletedCommentRes DeletedCommentResponse
+		deletedCommentRes.ID = reply.ID
+		deletedCommentRes.CreatedAt = reply.CreatedAt
+		deletedCommentRes.UpdatedAt = reply.UpdatedAt
+		deletedCommentRes.DeletedAt = reply.DeletedAt
+		deletedCommentRes.IsDeleted = true
+		deletedCommentRes.CreatedBy = reply.CreatedBy
+		commentRes.Replies = append(commentRes.Replies, deletedCommentRes)
+	}
+
+	ctx.JSON(http.StatusOK, internal.SuccessResponse{
+		Message: "Fetched comment successfully.",
+		Data:    commentRes,
+	})
+}
+
 func (h Handler) CommentPost(ctx *gin.Context) {
 	var reqUri PostAndUserUriRequest
 	if err := ctx.ShouldBindUri(&reqUri); err != nil {
+		ctx.AbortWithStatusJSON(http.StatusBadRequest, &internal.ErrorResponse{
+			Message: "Invalid request.",
+			Error:   internal.GenerateRequestValidatorError(err).Error(),
+		})
+		return
+	}
+
+	var reqBody CreateCommentRequest
+	if err := ctx.ShouldBindJSON(&reqBody); err != nil {
 		ctx.AbortWithStatusJSON(http.StatusBadRequest, &internal.ErrorResponse{
 			Message: "Invalid request.",
 			Error:   internal.GenerateRequestValidatorError(err).Error(),
@@ -294,7 +357,7 @@ func (h Handler) CommentPost(ctx *gin.Context) {
 		return
 	}
 
-	err := h.Service.CommentPost(ctx.Request.Context(), reqUri)
+	err := h.Service.CommentPost(ctx.Request.Context(), reqUri, reqBody)
 	if err != nil {
 		if err == gorm.ErrRecordNotFound {
 			ctx.AbortWithStatusJSON(http.StatusNotFound, internal.ErrorResponse{
@@ -311,13 +374,13 @@ func (h Handler) CommentPost(ctx *gin.Context) {
 		return
 	}
 
-	ctx.JSON(http.StatusOK, internal.SuccessResponse{
+	ctx.JSON(http.StatusCreated, internal.SuccessResponse{
 		Message: "Comment posted on post successfully.",
 	})
 }
 
 func (h Handler) UncommentPost(ctx *gin.Context) {
-	var reqUri PostAndUserUriRequest
+	var reqUri CommentAndUserUriRequest
 	if err := ctx.ShouldBindUri(&reqUri); err != nil {
 		ctx.AbortWithStatusJSON(http.StatusBadRequest, &internal.ErrorResponse{
 			Message: "Invalid request.",
@@ -362,5 +425,112 @@ func (h Handler) UncommentPost(ctx *gin.Context) {
 
 	ctx.JSON(http.StatusOK, internal.SuccessResponse{
 		Message: "Comment removed from post successfully.",
+	})
+}
+
+func (h Handler) ReplyComment(ctx *gin.Context) {
+	var reqUri CommentAndUserUriRequest
+	if err := ctx.ShouldBindUri(&reqUri); err != nil {
+		ctx.AbortWithStatusJSON(http.StatusBadRequest, &internal.ErrorResponse{
+			Message: "Invalid request.",
+			Error:   internal.GenerateRequestValidatorError(err).Error(),
+		})
+		return
+	}
+
+	var reqBody CreateCommentRequest
+	if err := ctx.ShouldBindJSON(&reqBody); err != nil {
+		ctx.AbortWithStatusJSON(http.StatusBadRequest, &internal.ErrorResponse{
+			Message: "Invalid request.",
+			Error:   internal.GenerateRequestValidatorError(err).Error(),
+		})
+		return
+	}
+
+	userId, idExists := ctx.Get("user_id")
+	if !idExists {
+		ctx.AbortWithStatusJSON(http.StatusUnauthorized, &internal.ErrorResponse{
+			Message: "Failed to reply on comment.",
+			Error:   "invalid token",
+		})
+		return
+	}
+
+	if reqUri.UserId != userId {
+		ctx.AbortWithStatusJSON(http.StatusForbidden, &internal.ErrorResponse{
+			Message: "Failed to reply on comment.",
+			Error:   "invalid token",
+		})
+		return
+	}
+
+	err := h.Service.ReplyComment(ctx.Request.Context(), reqUri, reqBody)
+	if err != nil {
+		if err == gorm.ErrRecordNotFound {
+			ctx.AbortWithStatusJSON(http.StatusNotFound, internal.ErrorResponse{
+				Message: "Failed to reply on comment, post not found.",
+				Error:   err.Error(),
+			})
+			return
+		}
+
+		ctx.AbortWithStatusJSON(http.StatusInternalServerError, internal.ErrorResponse{
+			Message: "Failed to reply on comment.",
+			Error:   err.Error(),
+		})
+		return
+	}
+
+	ctx.JSON(http.StatusCreated, internal.SuccessResponse{
+		Message: "Reply posted on comment successfully.",
+	})
+}
+
+func (h Handler) RemoveReplyFromComment(ctx *gin.Context) {
+	var reqUri CommentAndUserUriRequest
+	if err := ctx.ShouldBindUri(&reqUri); err != nil {
+		ctx.AbortWithStatusJSON(http.StatusBadRequest, &internal.ErrorResponse{
+			Message: "Invalid request.",
+			Error:   internal.GenerateRequestValidatorError(err).Error(),
+		})
+		return
+	}
+
+	userId, idExists := ctx.Get("user_id")
+	if !idExists {
+		ctx.AbortWithStatusJSON(http.StatusUnauthorized, &internal.ErrorResponse{
+			Message: "Failed to remove reply from comment.",
+			Error:   "invalid token",
+		})
+		return
+	}
+
+	if reqUri.UserId != userId {
+		ctx.AbortWithStatusJSON(http.StatusForbidden, &internal.ErrorResponse{
+			Message: "Failed to remove reply from comment.",
+			Error:   "invalid token",
+		})
+		return
+	}
+
+	err := h.Service.RemoveReplyFromComment(ctx.Request.Context(), reqUri)
+	if err != nil {
+		if err == gorm.ErrRecordNotFound {
+			ctx.AbortWithStatusJSON(http.StatusNotFound, internal.ErrorResponse{
+				Message: "Failed to remove reply from comment, comment not found.",
+				Error:   err.Error(),
+			})
+			return
+		}
+
+		ctx.AbortWithStatusJSON(http.StatusInternalServerError, internal.ErrorResponse{
+			Message: "Failed to remove reply from comment.",
+			Error:   err.Error(),
+		})
+		return
+	}
+
+	ctx.JSON(http.StatusOK, internal.SuccessResponse{
+		Message: "Reply removed from comment successfully.",
 	})
 }

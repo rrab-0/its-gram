@@ -417,3 +417,36 @@ func (h Handler) GetLikes(ctx *gin.Context) {
 		Data:    likes,
 	})
 }
+
+func (h Handler) GetComments(ctx *gin.Context) {
+	var reqUri internal.UserIdUriRequest
+	if err := ctx.ShouldBindUri(&reqUri); err != nil {
+		ctx.AbortWithStatusJSON(http.StatusBadRequest, &internal.ErrorResponse{
+			Message: "Invalid request.",
+			Error:   internal.GenerateRequestValidatorError(err).Error(),
+		})
+		return
+	}
+
+	comments, err := h.Service.GetComments(ctx.Request.Context(), reqUri)
+	if err != nil {
+		if err == gorm.ErrRecordNotFound {
+			ctx.AbortWithStatusJSON(http.StatusNotFound, internal.ErrorResponse{
+				Message: "Failed to fetch user's comments, comments not found.",
+				Error:   err.Error(),
+			})
+			return
+		}
+
+		ctx.AbortWithStatusJSON(http.StatusInternalServerError, internal.ErrorResponse{
+			Message: "Failed to fetch user's comments.",
+			Error:   err.Error(),
+		})
+		return
+	}
+
+	ctx.JSON(http.StatusOK, internal.SuccessResponse{
+		Message: "User's comments fetched successfully.",
+		Data:    comments,
+	})
+}

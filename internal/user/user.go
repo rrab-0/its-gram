@@ -33,6 +33,7 @@ type Repository interface {
 	UnfollowOtherUser(ctx context.Context, userId, otherUserId string) error
 
 	GetLikes(ctx context.Context, userId string) ([]internal.Post, error)
+	GetComments(ctx context.Context, userId string) ([]internal.Comment, error)
 }
 
 type Service interface {
@@ -48,4 +49,5 @@ type Service interface {
 	UnfollowOtherUser(ctx context.Context, reqUri FollowOtherUserRequest) error
 
 	GetLikes(ctx context.Context, reqUri internal.UserIdUriRequest) ([]internal.Post, error)
+	GetComments(ctx context.Context, reqUri internal.UserIdUriRequest) ([]internal.Comment, error)
 }

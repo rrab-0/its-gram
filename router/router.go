@@ -39,10 +39,12 @@ func Setup(r *gin.Engine, firebaseAuth *internal.FirebaseAuth, userHandler user.
 	v1 := r.Group("/api/v1")
 	user := v1.Group("/user")
 	{
-		user.GET("/:id", userHandler.GetUser)
-		user.GET("/:id/likes", userHandler.GetLikes) // TODO: check if working
-		user.GET("/search", userHandler.SearchUser)
 		user.POST("/register/:id", validateRegisterToken, userHandler.CreateUser)
+
+		user.GET("/:id", userHandler.GetUser)
+		user.GET("/:id/likes", userHandler.GetLikes)       // TODO: check if working
+		user.GET("/:id/comments", userHandler.GetComments) // TODO: check if working
+		user.GET("/search", userHandler.SearchUser)
 
 		user.Use(validateToken)
 		user.GET("/:id/homepage", userHandler.GetUserHomepage)
@@ -56,17 +58,20 @@ func Setup(r *gin.Engine, firebaseAuth *internal.FirebaseAuth, userHandler user.
 	post := v1.Group("/post")
 	{
 		post.GET("/:id", postHandler.GetPostById)
-		post.GET("/user/:id", postHandler.GetUserPosts)
+		post.GET("/comment/:commentId", postHandler.GetComment)
 
 		post.Use(validateToken)
 		post.POST("/create/:id", postHandler.CreatePost)
 		post.DELETE("/user/:id/delete/:postId", postHandler.DeletePost)
 
+		// TODO: might need to change Likes field in Post to be `Likes []*User`
 		post.POST("/user/:id/like/:postId", postHandler.LikePost)       // TODO: check if working
 		post.DELETE("/user/:id/unlike/:postId", postHandler.UnlikePost) // TODO: check if working
 
-		// TODO: might need to add Comments field in User struct
-		post.POST("/user/:id/comment/:postId", postHandler.CommentPost)       // TODO: check if working
-		post.DELETE("/user/:id/uncomment/:postId", postHandler.UncommentPost) // TODO: check if working
+		post.POST("/user/:id/comment/:postId", postHandler.CommentPost)
+		post.DELETE("/user/:id/comment/remove/:commentId", postHandler.UncommentPost)
+
+		post.POST("/user/:id/comment/reply/:commentId", postHandler.ReplyComment)
+		post.DELETE("/user/:id/comment/remove/reply/:commentId", postHandler.RemoveReplyFromComment)
 	}
 }

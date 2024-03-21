@@ -32,15 +32,6 @@ func (s postService) CreatePost(ctx context.Context, reqUri internal.UserIdUriRe
 	return post, nil
 }
 
-func (s postService) GetUserPosts(ctx context.Context, reqUri internal.UserIdUriRequest) ([]internal.Post, error) {
-	posts, err := s.repo.GetUserPosts(ctx, reqUri.UserId)
-	if err != nil {
-		return []internal.Post{}, err
-	}
-
-	return posts, nil
-}
-
 func (s postService) GetPostById(ctx context.Context, reqUri PostIdUriRequest) (internal.Post, error) {
 	post, err := s.repo.GetPostById(ctx, reqUri.PostId)
 	if err != nil {
@@ -62,15 +53,36 @@ func (s postService) LikePost(ctx context.Context, reqUri PostAndUserUriRequest)
 
 func (s postService) UnlikePost(ctx context.Context, reqUri PostAndUserUriRequest) error {
 	postId, _ := uuid.Parse(reqUri.PostId)
-	return s.repo.LikePost(ctx, reqUri.UserId, postId)
+	return s.repo.UnlikePost(ctx, reqUri.UserId, postId)
 }
 
-func (s postService) CommentPost(ctx context.Context, reqUri PostAndUserUriRequest) error {
-	postId, _ := uuid.Parse(reqUri.PostId)
-	return s.repo.LikePost(ctx, reqUri.UserId, postId)
+func (s postService) GetComment(ctx context.Context, reqUri GetCommentRequest) (internal.Comment, error) {
+	commentId, _ := uuid.Parse(reqUri.CommentId)
+
+	comment, err := s.repo.GetComment(ctx, commentId)
+	if err != nil {
+		return internal.Comment{}, err
+	}
+
+	return comment, nil
 }
 
-func (s postService) UncommentPost(ctx context.Context, reqUri PostAndUserUriRequest) error {
+func (s postService) CommentPost(ctx context.Context, reqUri PostAndUserUriRequest, reqBody CreateCommentRequest) error {
 	postId, _ := uuid.Parse(reqUri.PostId)
-	return s.repo.LikePost(ctx, reqUri.UserId, postId)
+	return s.repo.CommentPost(ctx, reqUri.UserId, reqBody.Description, postId)
+}
+
+func (s postService) UncommentPost(ctx context.Context, reqUri CommentAndUserUriRequest) error {
+	commentId, _ := uuid.Parse(reqUri.CommentId)
+	return s.repo.UncommentPost(ctx, reqUri.UserId, commentId)
+}
+
+func (s postService) ReplyComment(ctx context.Context, reqUri CommentAndUserUriRequest, reqBody CreateCommentRequest) error {
+	commentId, _ := uuid.Parse(reqUri.CommentId)
+	return s.repo.ReplyComment(ctx, reqUri.UserId, reqBody.Description, commentId)
+}
+
+func (s postService) RemoveReplyFromComment(ctx context.Context, reqUri CommentAndUserUriRequest) error {
+	commentId, _ := uuid.Parse(reqUri.CommentId)
+	return s.repo.RemoveReplyFromComment(ctx, reqUri.UserId, commentId)
 }
