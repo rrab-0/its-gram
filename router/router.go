@@ -10,7 +10,7 @@ import (
 	"github.com/rrab-0/its-gram/internal/user"
 )
 
-func Setup(r *gin.Engine, firebaseAuth *internal.FirebaseAuth, firebaseStorage *internal.FirebaseStorage, userHandler user.Handler, postHandler post.Handler) {
+func Setup(r *gin.Engine, firebaseAuth *internal.FirebaseAuth, userHandler user.Handler, postHandler post.Handler) {
 	r.Use(cors.New(cors.Config{
 		AllowOrigins:     []string{ /* "http://localhost:5173" */ "*"},
 		AllowMethods:     []string{"OPTIONS", "POST", "GET", "PUT", "PATCH", "DELETE"},

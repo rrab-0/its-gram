@@ -1,16 +1,13 @@
 package internal
 
 import (
-	"bytes"
 	"context"
 	"fmt"
-	"io"
 	"net/http"
 	"strings"
 
 	firebase "firebase.google.com/go"
 	"firebase.google.com/go/auth"
-	"firebase.google.com/go/storage"
 	"github.com/gin-gonic/gin"
 	"google.golang.org/api/option"
 )
@@ -177,45 +174,4 @@ func (f *FirebaseAuth) ValidateDevToken(funcType string) gin.HandlerFunc {
 		}
 		ctx.Next()
 	}
-}
-
-type FirebaseStorage struct {
-	storage *storage.Client
-}
-
-func NewFirebaseStorage(app *firebase.App) (*FirebaseStorage, error) {
-	storage, err := app.Storage(context.Background())
-	if err != nil {
-		return nil, err
-	}
-
-	return &FirebaseStorage{
-		storage: storage,
-	}, nil
-}
-
-// StreamFileUpload uploads an object via a stream.
-func (f *FirebaseStorage) StreamFileUpload(ctx context.Context, b []byte, bucketName, objectName string) (url string, e error) {
-	buf := bytes.NewBuffer(b)
-
-	bucket, err := f.storage.Bucket(bucketName)
-	if err != nil {
-		return "", fmt.Errorf("storage.Bucket: %w", err)
-	}
-
-	// Upload an object with storage.Writer.
-	wc := bucket.Object(objectName).NewWriter(ctx)
-	wc.ChunkSize = 0 // note retries are not supported for chunk size 0.
-
-	if _, err = io.Copy(wc, buf); err != nil {
-		return "", fmt.Errorf("io.Copy: %w", err)
-	}
-
-	// Data can continue to be added to the file until the writer is closed.
-	if err = wc.Close(); err != nil {
-		return "", fmt.Errorf("Writer.Close: %w", err)
-	}
-	fmt.Printf("%v uploaded to %v.\n", objectName, bucketName)
-
-	return wc.Attrs().MediaLink, nil
 }

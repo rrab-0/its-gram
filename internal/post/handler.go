@@ -1,12 +1,8 @@
 package post
 
 import (
-	"errors"
 	"fmt"
-	"io"
 	"net/http"
-	"os"
-	"slices"
 
 	"github.com/gin-gonic/gin"
 	"github.com/rrab-0/its-gram/internal"
@@ -15,25 +11,18 @@ import (
 
 type Handler struct {
 	Service
-	firebaseStorage internal.FirebaseStorage
 }
 
-func NewHandler(db *gorm.DB, firebaseStorage internal.FirebaseStorage) Handler {
+func NewHandler(db *gorm.DB) Handler {
 	return Handler{
-		Service:         NewService(NewRepository(db)),
-		firebaseStorage: firebaseStorage,
+		Service: NewService(NewRepository(db)),
 	}
 }
 
 func (h Handler) CreatePost(ctx *gin.Context) {
 	var (
-		reqUri                  internal.UserIdUriRequest
-		reqBody                 CreatePostRequest
-		ALLOWED_FILE_MIME_TYPES = []string{
-			"image/apng", "image/avif", "image/gif",
-			"image/jpeg", "image/png", "image/svg+xml",
-			"image/webp",
-		}
+		reqUri  internal.UserIdUriRequest
+		reqBody CreatePostRequest
 	)
 
 	if err := ctx.ShouldBindUri(&reqUri); err != nil {
@@ -67,58 +56,6 @@ func (h Handler) CreatePost(ctx *gin.Context) {
 			Error:   "invalid token",
 		})
 		return
-	}
-
-	fileHeader, err := ctx.FormFile("picture")
-	if err != nil {
-		if err.Error() == "http: no such file" {
-			err = errors.New("form key must be picture")
-		}
-
-		ctx.AbortWithStatusJSON(http.StatusBadRequest, &internal.ErrorResponse{
-			Message: "Invalid request.",
-			Error:   err.Error(),
-		})
-		return
-	}
-
-	if !slices.Contains(ALLOWED_FILE_MIME_TYPES, fileHeader.Header.Values("Content-Type")[0]) {
-		ctx.AbortWithStatusJSON(http.StatusBadRequest, &internal.ErrorResponse{
-			Message: "Invalid request.",
-			Error:   errors.New("file must be an image").Error(),
-		})
-		return
-	}
-
-	file, err := fileHeader.Open()
-	if err != nil {
-		ctx.AbortWithStatusJSON(http.StatusInternalServerError, &internal.ErrorResponse{
-			Message: "Failed to create post.",
-			Error:   err.Error(),
-		})
-		return
-	}
-
-	fileBytes, err := io.ReadAll(file)
-	if err != nil {
-		ctx.AbortWithStatusJSON(http.StatusInternalServerError, &internal.ErrorResponse{
-			Message: "Failed to create post.",
-			Error:   err.Error(),
-		})
-		return
-	}
-
-	url, err := h.firebaseStorage.StreamFileUpload(ctx.Request.Context(), fileBytes, os.Getenv("FIREBASE_BUCKET_NAME"), "")
-	if err != nil || url == "" {
-		ctx.AbortWithStatusJSON(http.StatusInternalServerError, &internal.ErrorResponse{
-			Message: "Failed to create post, picture upload failed.",
-			Error:   err.Error(),
-		})
-		return
-	}
-
-	if reqBody.PictureLink == "" {
-		reqBody.PictureLink = url
 	}
 
 	post, err := h.Service.CreatePost(ctx.Request.Context(), reqUri, reqBody)
