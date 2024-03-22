@@ -40,7 +40,7 @@ func NewPostgreSQL() (postgreSQL, error) {
 	// 	gormConfig = gorm.Config{}
 	// } else {
 	gormConfig := gorm.Config{
-		TranslateError: true,
+		// TranslateError: true,
 	}
 	// }
 

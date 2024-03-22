@@ -20,43 +20,32 @@ func NewRepository(db *gorm.DB) Repository {
 }
 
 func (r gormRepository) CreatePost(ctx context.Context, userId string, post internal.Post) (internal.Post, error) {
-	var (
-		user internal.User
-		tx   = r.db.WithContext(ctx).Begin()
-	)
-
-	defer func() {
-		if r := recover(); r != nil {
-			tx.Rollback()
-		}
-	}()
-
-	err := tx.Where("id = ?", userId).First(&user).Error
+	post.UserID = userId
+	err := r.db.WithContext(ctx).Create(&post).Error
 	if err != nil {
-		tx.Rollback()
-		return internal.Post{}, err
-	}
-
-	post.CreatedBy = user
-	post.UserID = user.ID
-	err = tx.Create(&post).Error
-	if err != nil {
-		tx.Rollback()
-		return internal.Post{}, err
-	}
-
-	if err := tx.Commit().Error; err != nil {
 		return internal.Post{}, err
 	}
 
 	return post, nil
 }
 
-func (r gormRepository) GetPostById(ctx context.Context, id string) (internal.Post, error) {
-	var post internal.Post
+func (r gormRepository) GetPostById(ctx context.Context, id string) (internal.Post, int, error) {
+	var (
+		totalComments int
+		post          internal.Post
+		tx            = r.db.WithContext(ctx).Begin()
+	)
 
-	err := r.db.
-		WithContext(ctx).
+	// Lazy way to get total comments in post
+	err := tx.Unscoped().Preload("Comments").Where("id = ?", id).First(&post).Error
+	if err != nil {
+		tx.Rollback()
+		return internal.Post{}, 0, err
+	}
+	totalComments = len(post.Comments)
+
+	// Get post
+	err = r.db.
 		Unscoped().
 		Preload(clause.Associations).
 		Preload("Comments", "parent_id IS NULL").
@@ -65,10 +54,10 @@ func (r gormRepository) GetPostById(ctx context.Context, id string) (internal.Po
 		First(&post).
 		Error
 	if err != nil {
-		return internal.Post{}, err
+		return internal.Post{}, 0, err
 	}
 
-	return post, nil
+	return post, totalComments, nil
 }
 
 func (r gormRepository) DeletePost(ctx context.Context, userId string, postId uuid.UUID) error {
@@ -90,7 +79,8 @@ func (r gormRepository) LikePost(ctx context.Context, userId string, postId uuid
 
 	user.ID = userId
 	post.ID = postId
-	return r.db.WithContext(ctx).Model(&user).Association("LikedPosts").Append(&post)
+
+	return r.db.Model(&user).Association("LikedPosts").Append(&post)
 }
 
 func (r gormRepository) UnlikePost(ctx context.Context, userId string, postId uuid.UUID) error {
@@ -109,7 +99,15 @@ func (r gormRepository) GetComment(ctx context.Context, commentId uuid.UUID) (in
 		comment internal.Comment
 	)
 
-	err := r.db.WithContext(ctx).Unscoped().Preload("Replies").Where("id = ?", commentId).First(&comment).Error
+	err := r.db.
+		WithContext(ctx).
+		Unscoped().
+		Preload(clause.Associations).
+		Preload("Replies.CreatedBy").
+		Preload("Replies.Likes").
+		Where("id = ?", commentId).
+		First(&comment).
+		Error
 	if err != nil {
 		return internal.Comment{}, err
 	}
@@ -118,61 +116,21 @@ func (r gormRepository) GetComment(ctx context.Context, commentId uuid.UUID) (in
 }
 
 func (r gormRepository) CommentPost(ctx context.Context, userId, description string, postId uuid.UUID) error {
-	var (
-		user    internal.User
-		post    internal.Post
-		comment internal.Comment
-		tx      = r.db.WithContext(ctx).Begin()
-	)
-
-	defer func() {
-		if r := recover(); r != nil {
-			tx.Rollback()
-		}
-	}()
-
-	err := tx.Where("id = ?", userId).First(&user).Error
-	if err != nil {
-		tx.Rollback()
-		return err
-	}
-
-	err = tx.Where("id = ?", postId).First(&post).Error
-	if err != nil {
-		tx.Rollback()
-		return err
-	}
-
-	comment.CreatedBy = user
-	comment.UserID = user.ID
-
-	comment.CreatedIn = post
-	comment.PostCreatedInID = post.ID
-
-	comment.PostID = post.ID
-
+	var comment internal.Comment
+	comment.UserID = userId
+	comment.PostCreatedInID = postId
+	comment.PostID = postId
 	comment.Description = description
 
-	err = tx.Create(&comment).Error
-	if err != nil {
-		tx.Rollback()
-		return err
-	}
-
-	if err := tx.Commit().Error; err != nil {
-		return err
-	}
-
-	return nil
+	return r.db.WithContext(ctx).Create(&comment).Error
 }
 
 func (r gormRepository) UncommentPost(ctx context.Context, userId string, commentId uuid.UUID) error {
 	return r.db.WithContext(ctx).Where("id = ?", commentId).Delete(&internal.Comment{}).Error
 }
 
-func (r gormRepository) ReplyComment(ctx context.Context, userId, description string, commentId uuid.UUID) error {
+func (r gormRepository) ReplyComment(ctx context.Context, userId, description string, postId, commentId uuid.UUID) error {
 	var (
-		user       internal.User
 		comment    internal.Comment
 		newComment internal.Comment
 		tx         = r.db.WithContext(ctx).Begin()
@@ -184,35 +142,19 @@ func (r gormRepository) ReplyComment(ctx context.Context, userId, description st
 		}
 	}()
 
-	err := tx.Where("id = ?", userId).First(&user).Error
-	if err != nil {
-		tx.Rollback()
-		return err
-	}
-
-	err = tx.Where("id = ?", commentId).First(&comment).Error
-	if err != nil {
-		tx.Rollback()
-		return err
-	}
-
-	newComment.CreatedBy = user
-	newComment.UserID = user.ID
-
-	newComment.CreatedIn = comment.CreatedIn
-	newComment.PostCreatedInID = comment.PostCreatedInID
-
-	newComment.PostID = comment.PostID
-
+	newComment.UserID = userId
+	newComment.PostCreatedInID = postId
+	newComment.PostID = postId
 	newComment.Description = description
-	newComment.ParentID = &comment.ID
+	newComment.ParentID = &commentId
 
-	err = tx.Create(&newComment).Error
+	err := tx.Create(&newComment).Error
 	if err != nil {
 		tx.Rollback()
 		return err
 	}
 
+	comment.ID = commentId
 	err = tx.Model(&comment).Association("Replies").Append(&newComment)
 	if err != nil {
 		tx.Rollback()

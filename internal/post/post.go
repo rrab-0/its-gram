@@ -33,6 +33,12 @@ type CommentAndUserUriRequest struct {
 	CommentId string `uri:"commentId" binding:"required,uuid"`
 }
 
+type ReplyCommentRequest struct {
+	UserId    string `uri:"id" binding:"required"`
+	PostId    string `uri:"postId" binding:"required,uuid"`
+	CommentId string `uri:"commentId" binding:"required,uuid"`
+}
+
 type DeletedCommentResponse struct {
 	ID        uuid.UUID      `json:"id"`
 	CreatedAt time.Time      `json:"created_at"`
@@ -43,14 +49,15 @@ type DeletedCommentResponse struct {
 }
 
 type GetPostByIdResponse struct {
-	ID          uuid.UUID        `json:"id"`
-	CreatedAt   time.Time        `json:"created_at"`
-	CreatedBy   internal.User    `json:"created_by"`
-	PictureLink string           `json:"picture_link"`
-	Title       string           `json:"title"`
-	Description string           `json:"description"`
-	Likes       []*internal.User `json:"likes"`
-	Comments    []interface{}    `json:"comments"`
+	ID            uuid.UUID       `json:"id"`
+	CreatedAt     time.Time       `json:"created_at"`
+	CreatedBy     internal.User   `json:"created_by"`
+	PictureLink   string          `json:"picture_link"`
+	Title         string          `json:"title"`
+	Description   string          `json:"description"`
+	Likes         []internal.User `json:"likes"`
+	Comments      []interface{}   `json:"comments"`
+	TotalComments int             `json:"total_comments"`
 }
 
 type GetCommentRequest struct {
@@ -58,18 +65,18 @@ type GetCommentRequest struct {
 }
 
 type GetCommentResponse struct {
-	ID          uuid.UUID      `json:"id"`
-	CreatedAt   time.Time      `json:"created_at"`
-	UpdatedAt   time.Time      `json:"updated_at"`
-	DeletedAt   gorm.DeletedAt `json:"deleted_at"`
-	CreatedBy   internal.User  `json:"created_by"`
-	Description string         `json:"description"`
-	Likes       int64          `json:"likes"`
-	Replies     []interface{}  `json:"replies"`
+	ID          uuid.UUID       `json:"id"`
+	CreatedAt   time.Time       `json:"created_at"`
+	UpdatedAt   time.Time       `json:"updated_at"`
+	DeletedAt   gorm.DeletedAt  `json:"deleted_at"`
+	CreatedBy   internal.User   `json:"created_by"`
+	Description string          `json:"description"`
+	Likes       []internal.User `json:"likes"`
+	Replies     []interface{}   `json:"replies"`
 }
 
 type Repository interface {
-	GetPostById(ctx context.Context, id string) (internal.Post, error)
+	GetPostById(ctx context.Context, id string) (post internal.Post, totalComments int, err error)
 
 	CreatePost(ctx context.Context, userId string, post internal.Post) (internal.Post, error)
 	DeletePost(ctx context.Context, userId string, postId uuid.UUID) error
@@ -80,12 +87,13 @@ type Repository interface {
 	GetComment(ctx context.Context, commentId uuid.UUID) (internal.Comment, error)
 	CommentPost(ctx context.Context, userId, description string, postId uuid.UUID) error
 	UncommentPost(ctx context.Context, userId string, commentId uuid.UUID) error
-	ReplyComment(ctx context.Context, userId, description string, commentId uuid.UUID) error
+	// ReplyComment(ctx context.Context, userId, description string, commentId uuid.UUID) error
+	ReplyComment(ctx context.Context, userId, description string, postId, commentId uuid.UUID) error
 	RemoveReplyFromComment(ctx context.Context, userId string, commentId uuid.UUID) error
 }
 
 type Service interface {
-	GetPostById(ctx context.Context, reqUri PostIdUriRequest) (internal.Post, error)
+	GetPostById(ctx context.Context, reqUri PostIdUriRequest) (post internal.Post, totalComments int, err error)
 
 	CreatePost(ctx context.Context, reqUri internal.UserIdUriRequest, reqBody CreatePostRequest) (internal.Post, error)
 	DeletePost(ctx context.Context, reqUri PostAndUserUriRequest) error
@@ -96,6 +104,7 @@ type Service interface {
 	GetComment(ctx context.Context, reqUri GetCommentRequest) (internal.Comment, error)
 	CommentPost(ctx context.Context, reqUri PostAndUserUriRequest, reqBody CreateCommentRequest) error
 	UncommentPost(ctx context.Context, reqUri CommentAndUserUriRequest) error
-	ReplyComment(ctx context.Context, reqUri CommentAndUserUriRequest, reqBody CreateCommentRequest) error
+	// ReplyComment(ctx context.Context, reqUri CommentAndUserUriRequest, reqBody CreateCommentRequest) error
+	ReplyComment(ctx context.Context, reqUri ReplyCommentRequest, reqBody CreateCommentRequest) error
 	RemoveReplyFromComment(ctx context.Context, reqUri CommentAndUserUriRequest) error
 }

@@ -5,7 +5,6 @@ import (
 
 	"github.com/google/uuid"
 	"gorm.io/gorm"
-	"gorm.io/gorm/clause"
 )
 
 type Comment struct {
@@ -26,8 +25,7 @@ type Comment struct {
 	PostID uuid.UUID `json:"-" gorm:"type:uuid;not null"`
 
 	Description string `json:"description"`
-	// TODO: might need to change this to []User just like at post
-	Likes int64 `json:"likes"`
+	Likes       []User `json:"likes" gorm:"many2many:user_liked_comments;"`
 
 	// "comments" has many "comments"
 	Replies  []Comment  `json:"replies" gorm:"foreignKey:ParentID;"`
@@ -48,8 +46,8 @@ type Post struct {
 	Title       string `json:"title" gorm:"not null"`
 	Description string `json:"description"`
 
-	// "user" many to many "(liked) posts" with Back-Reference
-	Likes []*User `json:"likes" gorm:"many2many:user_liked_posts;"`
+	// "user" many to many "(liked) posts"
+	Likes []User `json:"likes" gorm:"many2many:user_liked_posts;"`
 
 	// "post" has many "comments"
 	Comments []Comment `json:"comments" gorm:"foreignKey:PostID;"`
@@ -65,18 +63,26 @@ type User struct {
 	Email       string `json:"-" gorm:"unique; not null"`
 	PictureLink string `json:"picture_link"`
 
-	Posts      []Post  `json:"posts" gorm:"foreignKey:UserID;references:ID"`   // "user" has many "posts"
-	LikedPosts []*Post `json:"liked_posts" gorm:"many2many:user_liked_posts;"` // "user" many to many "(liked) posts" with Back-Reference
-	Followers  []*User `json:"followers" gorm:"many2many:user_followers;"`     // "user" many to many "user"
-	Followings []*User `json:"followings" gorm:"many2many:user_followings;"`   // "user" many to many "user"
+	Posts      []Post `json:"posts" gorm:"foreignKey:UserID;references:ID"`   // "user" has many "posts"
+	LikedPosts []Post `json:"liked_posts" gorm:"many2many:user_liked_posts;"` // "user" many to many "(liked) posts"
+
+	Comments      []Comment `json:"comments" gorm:"many2many:user_comments;"`             // "user" has many "comments"
+	LikedComments []Comment `json:"liked_comments" gorm:"many2many:user_liked_comments;"` // "user" many to many "(liked) comments"
+
+	Followers  []*User `json:"followers" gorm:"many2many:user_followers;"`   // "user" many to many "user"
+	Followings []*User `json:"followings" gorm:"many2many:user_followings;"` // "user" many to many "user"
 }
 
-func (u *User) BeforeCreate(tx *gorm.DB) error {
-	if u.DeletedAt.Valid {
-		tx.Clauses(clause.OnConflict{DoNothing: true})
-	}
-	return nil
-}
+// TODO:
+// there maybe a way to have a soft delete for user table and
+// allow user to delete account and reregister with the same email
+//
+// func (u *User) BeforeCreate(tx *gorm.DB) error {
+// 	if u.DeletedAt.Valid {
+// 		tx.Clauses(clause.OnConflict{DoNothing: true})
+// 	}
+// 	return nil
+// }
 
 type UserIdUriRequest struct {
 	UserId string `uri:"id" binding:"required"`

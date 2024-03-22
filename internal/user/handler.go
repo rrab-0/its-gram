@@ -19,6 +19,7 @@ func NewHandler(db *gorm.DB) Handler {
 	}
 }
 
+// TODO: check if after deleting, the same user (email) can register again or not
 func (h Handler) CreateUser(ctx *gin.Context) {
 	firebaseId, fExists := ctx.Get("user_id")
 	username, uExists := ctx.Get("username")

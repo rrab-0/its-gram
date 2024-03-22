@@ -32,13 +32,13 @@ func (s postService) CreatePost(ctx context.Context, reqUri internal.UserIdUriRe
 	return post, nil
 }
 
-func (s postService) GetPostById(ctx context.Context, reqUri PostIdUriRequest) (internal.Post, error) {
-	post, err := s.repo.GetPostById(ctx, reqUri.PostId)
+func (s postService) GetPostById(ctx context.Context, reqUri PostIdUriRequest) (internal.Post, int, error) {
+	post, totalComments, err := s.repo.GetPostById(ctx, reqUri.PostId)
 	if err != nil {
-		return internal.Post{}, err
+		return internal.Post{}, 0, err
 	}
 
-	return post, nil
+	return post, totalComments, nil
 }
 
 func (s postService) DeletePost(ctx context.Context, reqUri PostAndUserUriRequest) error {
@@ -77,9 +77,10 @@ func (s postService) UncommentPost(ctx context.Context, reqUri CommentAndUserUri
 	return s.repo.UncommentPost(ctx, reqUri.UserId, commentId)
 }
 
-func (s postService) ReplyComment(ctx context.Context, reqUri CommentAndUserUriRequest, reqBody CreateCommentRequest) error {
+func (s postService) ReplyComment(ctx context.Context, reqUri ReplyCommentRequest, reqBody CreateCommentRequest) error {
+	postId, _ := uuid.Parse(reqUri.PostId)
 	commentId, _ := uuid.Parse(reqUri.CommentId)
-	return s.repo.ReplyComment(ctx, reqUri.UserId, reqBody.Description, commentId)
+	return s.repo.ReplyComment(ctx, reqUri.UserId, reqBody.Description, postId, commentId)
 }
 
 func (s postService) RemoveReplyFromComment(ctx context.Context, reqUri CommentAndUserUriRequest) error {

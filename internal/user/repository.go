@@ -59,6 +59,8 @@ func (r gormRepository) GetUserHomepage(ctx context.Context, id string) ([]inter
 		WithContext(ctx).
 		Preload("Followings.Posts").
 		Preload("Followings.Posts.CreatedBy").
+		Preload("Followings.Posts.Likes").
+		Preload("Followings.Posts.Comments").
 		First(&user)
 	if res.Error != nil {
 		return []internal.Post{}, res.Error
@@ -208,8 +210,6 @@ func (r gormRepository) UnfollowOtherUser(ctx context.Context, userId, otherUser
 	return tx.Commit().Error
 }
 
-// TODO:
-// - need to get liked post's createdBy field
 func (r gormRepository) GetLikes(ctx context.Context, userId string) ([]internal.Post, error) {
 	var (
 		user       internal.User
@@ -218,21 +218,9 @@ func (r gormRepository) GetLikes(ctx context.Context, userId string) ([]internal
 
 	user.ID = userId
 
-	if err := r.db.Model(&user).Association("LikedPosts").Find(&likedPosts); err != nil {
+	if err := r.db.Model(&user).Preload(clause.Associations).Association("LikedPosts").Find(&likedPosts); err != nil {
 		return []internal.Post{}, err
 	}
-
-	// res := r.db.
-	// 	WithContext(ctx).
-	// 	Preload("LikedPosts.CreatedBy").
-	// 	First(&user)
-	// if res.Error != nil {
-	// 	return []internal.Post{}, res.Error
-	// }
-
-	// for _, likedPost := range user.LikedPosts {
-	// 	likedPosts = append(likedPosts, likedPost...)
-	// }
 
 	return likedPosts, nil
 }

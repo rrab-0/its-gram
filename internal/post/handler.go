@@ -94,7 +94,7 @@ func (h Handler) GetPostById(ctx *gin.Context) {
 		return
 	}
 
-	post, err := h.Service.GetPostById(ctx.Request.Context(), reqUri)
+	post, totalComments, err := h.Service.GetPostById(ctx.Request.Context(), reqUri)
 	if err != nil {
 		if err == gorm.ErrRecordNotFound {
 			ctx.AbortWithStatusJSON(http.StatusNotFound, internal.ErrorResponse{
@@ -118,6 +118,7 @@ func (h Handler) GetPostById(ctx *gin.Context) {
 	postRes.Title = post.Title
 	postRes.Description = post.Description
 	postRes.Likes = post.Likes
+	postRes.TotalComments = totalComments
 
 	for _, comment := range post.Comments {
 		if !comment.DeletedAt.Valid {
@@ -432,7 +433,7 @@ func (h Handler) UncommentPost(ctx *gin.Context) {
 }
 
 func (h Handler) ReplyComment(ctx *gin.Context) {
-	var reqUri CommentAndUserUriRequest
+	var reqUri ReplyCommentRequest
 	if err := ctx.ShouldBindUri(&reqUri); err != nil {
 		ctx.AbortWithStatusJSON(http.StatusBadRequest, &internal.ErrorResponse{
 			Message: "Invalid request.",

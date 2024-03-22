@@ -68,18 +68,17 @@ func Setup(r *gin.Engine, firebaseAuth *internal.FirebaseAuth, userHandler user.
 		post.POST("/create/:id", postHandler.CreatePost)
 		post.DELETE("/user/:id/delete/:postId", postHandler.DeletePost)
 
-		// TODO: might need to change Likes field in Post to be `Likes []*User`
-		post.POST("/user/:id/like/:postId", postHandler.LikePost)       // TODO: check if working
-		post.DELETE("/user/:id/unlike/:postId", postHandler.UnlikePost) // TODO: check if working
+		post.POST("/user/:id/like/:postId", postHandler.LikePost)
+		post.DELETE("/user/:id/unlike/:postId", postHandler.UnlikePost)
 
 		post.POST("/user/:id/comment/:postId", postHandler.CommentPost)
 		post.DELETE("/user/:id/comment/remove/:commentId", postHandler.UncommentPost)
 
-		post.POST("/user/:id/comment/reply/:commentId", postHandler.ReplyComment)
+		post.POST("/:postId/user/:id/comment/reply/:commentId", postHandler.ReplyComment)
 		post.DELETE("/user/:id/comment/remove/reply/:commentId", postHandler.RemoveReplyFromComment)
 
 		// TODO: implement this also
-		// post.POST("/user/:id/comment/like/:commentId", postHandler.LikeComment)
-		// post.DELETE("/user/:id/comment/unlike/:commentId", postHandler.UnlikeComment)
+		// post.POST("/user/:id/comment/like/:commentId", postHandler.LikeComment) // TODO: check if working
+		// post.DELETE("/user/:id/comment/unlike/:commentId", postHandler.UnlikeComment) // TODO: check if working
 	}
 }
