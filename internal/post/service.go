@@ -87,3 +87,13 @@ func (s postService) RemoveReplyFromComment(ctx context.Context, reqUri CommentA
 	commentId, _ := uuid.Parse(reqUri.CommentId)
 	return s.repo.RemoveReplyFromComment(ctx, reqUri.UserId, commentId)
 }
+
+func (s postService) LikeComment(ctx context.Context, reqUri CommentAndUserUriRequest) error {
+	commentId, _ := uuid.Parse(reqUri.CommentId)
+	return s.repo.LikeComment(ctx, reqUri.UserId, commentId)
+}
+
+func (s postService) UnlikeComment(ctx context.Context, reqUri CommentAndUserUriRequest) error {
+	commentId, _ := uuid.Parse(reqUri.CommentId)
+	return s.repo.UnlikeComment(ctx, reqUri.UserId, commentId)
+}

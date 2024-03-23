@@ -2,6 +2,8 @@ package user
 
 import (
 	"context"
+	"sort"
+	"time"
 
 	"github.com/rrab-0/its-gram/internal"
 	"gorm.io/gorm"
@@ -210,25 +212,109 @@ func (r gormRepository) UnfollowOtherUser(ctx context.Context, userId, otherUser
 	return tx.Commit().Error
 }
 
-func (r gormRepository) GetLikes(ctx context.Context, userId string) ([]internal.Post, error) {
+func getCreatedAt(like interface{}) time.Time {
+	switch v := like.(type) {
+	case internal.Post:
+		return v.CreatedAt
+	case internal.Comment:
+		return v.CreatedAt
+	default:
+		return time.Time{}
+	}
+}
+
+func (r gormRepository) GetPosts(ctx context.Context, userId string) ([]internal.Post, []int, error) {
 	var (
-		user       internal.User
-		likedPosts []internal.Post
+		totalComments []int
+		posts         []internal.Post
+		tx            = r.db.WithContext(ctx).Begin()
+	)
+
+	err := tx.Unscoped().Preload("Comments").Where("user_id = ?", userId).Find(&posts).Error
+	if err != nil {
+		tx.Rollback()
+		return nil, nil, err
+	}
+
+	for _, post := range posts {
+		totalComments = append(totalComments, len(post.Comments))
+	}
+
+	posts = nil
+
+	err = tx.
+		Unscoped().
+		Preload(clause.Associations).
+		Preload("Comments", "parent_id IS NULL").
+		Preload("Comments.CreatedBy").
+		Preload("Comments.Likes").
+		Preload("Comments.Replies").
+		Where("user_id = ?", userId).
+		Find(&posts).
+		Error
+
+	if err != nil {
+		tx.Rollback()
+		return nil, nil, err
+	}
+
+	if err := tx.Commit().Error; err != nil {
+		return nil, nil, err
+	}
+
+	return posts, totalComments, nil
+}
+
+func (r gormRepository) GetLikes(ctx context.Context, userId string) ([]any, error) {
+	var (
+		user  internal.User
+		likes []any
 	)
 
 	user.ID = userId
 
-	if err := r.db.Model(&user).Preload(clause.Associations).Association("LikedPosts").Find(&likedPosts); err != nil {
-		return []internal.Post{}, err
+	err := r.db.
+		WithContext(ctx).
+		Model(&user).
+		Preload("LikedPosts", func(db *gorm.DB) *gorm.DB {
+			return db.Preload(clause.Associations)
+		}).
+		Preload("LikedComments", func(db *gorm.DB) *gorm.DB {
+			return db.Preload(clause.Associations)
+		}).
+		First(&user).
+		Error
+	if err != nil {
+		return []any{}, err
 	}
 
-	return likedPosts, nil
+	for _, comment := range user.LikedComments {
+		likes = append(likes, GetLikesCommentQueryRes{
+			Type:    "comment",
+			Comment: comment,
+		})
+	}
+
+	for _, post := range user.LikedPosts {
+		likes = append(likes, GetLikesPostQueryRes{
+			Type: "post",
+			Post: post,
+		})
+	}
+
+	sort.Slice(likes, func(i, j int) bool {
+		iCreatedAt := getCreatedAt(likes[i])
+		jCreatedAt := getCreatedAt(likes[j])
+		return iCreatedAt.Before(jCreatedAt)
+	})
+
+	return likes, nil
 }
 
 func (r gormRepository) GetComments(ctx context.Context, userId string) ([]internal.Comment, error) {
 	var comments []internal.Comment
 
-	if err := r.db.Where("user_id = ?", userId).Find(&comments).Error; err != nil {
+	if err := r.db.WithContext(ctx).Preload(clause.Associations).Where("user_id = ?", userId).Find(&comments).Error; err != nil {
 		return []internal.Comment{}, err
 	}
 

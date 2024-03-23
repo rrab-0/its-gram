@@ -386,8 +386,92 @@ func (h Handler) UnfollowOtherUser(ctx *gin.Context) {
 	})
 }
 
+func (h Handler) GetPosts(ctx *gin.Context) {
+	var (
+		reqUri  internal.UserIdUriRequest
+		postRes []any
+	)
+	if err := ctx.ShouldBindUri(&reqUri); err != nil {
+		ctx.AbortWithStatusJSON(http.StatusBadRequest, &internal.ErrorResponse{
+			Message: "Invalid request.",
+			Error:   internal.GenerateRequestValidatorError(err).Error(),
+		})
+		return
+	}
+
+	posts, totalComments, err := h.Service.GetPosts(ctx.Request.Context(), reqUri)
+	if err != nil {
+		if err == gorm.ErrRecordNotFound {
+			ctx.AbortWithStatusJSON(http.StatusNotFound, internal.ErrorResponse{
+				Message: "Failed to fetch user's posts, posts not found.",
+				Error:   err.Error(),
+			})
+			return
+		}
+
+		ctx.AbortWithStatusJSON(http.StatusInternalServerError, internal.ErrorResponse{
+			Message: "Failed to fetch user's posts.",
+			Error:   err.Error(),
+		})
+		return
+	}
+
+	for i, post := range posts {
+		if post.DeletedAt.Valid {
+			var deletedPost internal.DeletedCommentOrPostResponse
+			deletedPost.ID = post.ID
+			deletedPost.CreatedAt = post.CreatedAt
+			deletedPost.UpdatedAt = post.UpdatedAt
+			deletedPost.DeletedAt = post.DeletedAt
+			deletedPost.IsDeleted = true
+			deletedPost.CreatedBy = post.CreatedBy
+
+			postRes = append(postRes, deletedPost)
+			continue
+		}
+
+		var newPost internal.GetPostResponse
+		newPost.ID = post.ID
+		newPost.CreatedAt = post.CreatedAt
+		newPost.UpdatedAt = post.UpdatedAt
+		newPost.DeletedAt = post.DeletedAt
+
+		newPost.CreatedBy = post.CreatedBy
+		newPost.PictureLink = post.PictureLink
+		newPost.Title = post.Title
+		newPost.Description = post.Description
+		newPost.Likes = post.Likes
+		newPost.TotalComments = totalComments[i]
+
+		for _, comment := range post.Comments {
+			if !comment.DeletedAt.Valid {
+				newPost.Comments = append(newPost.Comments, comment)
+				continue
+			}
+
+			var deletedCommentRes internal.DeletedCommentOrPostResponse
+			deletedCommentRes.ID = comment.ID
+			deletedCommentRes.CreatedAt = comment.CreatedAt
+			deletedCommentRes.UpdatedAt = comment.UpdatedAt
+			deletedCommentRes.DeletedAt = comment.DeletedAt
+			deletedCommentRes.IsDeleted = true
+			deletedCommentRes.CreatedBy = comment.CreatedBy
+			newPost.Comments = append(newPost.Comments, deletedCommentRes)
+		}
+
+		postRes = append(postRes, newPost)
+	}
+
+	ctx.JSON(http.StatusOK, internal.SuccessResponse{
+		Message: "User's posts fetched successfully.",
+		Data:    postRes,
+	})
+}
+
 func (h Handler) GetLikes(ctx *gin.Context) {
-	var reqUri internal.UserIdUriRequest
+	var (
+		reqUri internal.UserIdUriRequest
+	)
 	if err := ctx.ShouldBindUri(&reqUri); err != nil {
 		ctx.AbortWithStatusJSON(http.StatusBadRequest, &internal.ErrorResponse{
 			Message: "Invalid request.",

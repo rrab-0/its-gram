@@ -84,7 +84,7 @@ func (h Handler) CreatePost(ctx *gin.Context) {
 func (h Handler) GetPostById(ctx *gin.Context) {
 	var (
 		reqUri  PostIdUriRequest
-		postRes GetPostByIdResponse
+		postRes internal.GetPostResponse
 	)
 	if err := ctx.ShouldBindUri(&reqUri); err != nil {
 		ctx.AbortWithStatusJSON(http.StatusBadRequest, &internal.ErrorResponse{
@@ -111,8 +111,27 @@ func (h Handler) GetPostById(ctx *gin.Context) {
 		return
 	}
 
+	if post.DeletedAt.Valid {
+		var deletedPost internal.DeletedCommentOrPostResponse
+		deletedPost.ID = post.ID
+		deletedPost.CreatedAt = post.CreatedAt
+		deletedPost.UpdatedAt = post.UpdatedAt
+		deletedPost.DeletedAt = post.DeletedAt
+		deletedPost.IsDeleted = true
+		deletedPost.CreatedBy = post.CreatedBy
+
+		ctx.JSON(http.StatusOK, internal.SuccessResponse{
+			Message: "Post fetched successfully.",
+			Data:    deletedPost,
+		})
+		return
+	}
+
 	postRes.ID = post.ID
 	postRes.CreatedAt = post.CreatedAt
+	postRes.UpdatedAt = post.UpdatedAt
+	postRes.DeletedAt = post.DeletedAt
+
 	postRes.CreatedBy = post.CreatedBy
 	postRes.PictureLink = post.PictureLink
 	postRes.Title = post.Title
@@ -126,7 +145,7 @@ func (h Handler) GetPostById(ctx *gin.Context) {
 			continue
 		}
 
-		var deletedCommentRes DeletedCommentResponse
+		var deletedCommentRes internal.DeletedCommentOrPostResponse
 		deletedCommentRes.ID = comment.ID
 		deletedCommentRes.CreatedAt = comment.CreatedAt
 		deletedCommentRes.UpdatedAt = comment.UpdatedAt
@@ -309,7 +328,7 @@ func (h Handler) GetComment(ctx *gin.Context) {
 			continue
 		}
 
-		var deletedCommentRes DeletedCommentResponse
+		var deletedCommentRes internal.DeletedCommentOrPostResponse
 		deletedCommentRes.ID = reply.ID
 		deletedCommentRes.CreatedAt = reply.CreatedAt
 		deletedCommentRes.UpdatedAt = reply.UpdatedAt
@@ -536,5 +555,103 @@ func (h Handler) RemoveReplyFromComment(ctx *gin.Context) {
 
 	ctx.JSON(http.StatusOK, internal.SuccessResponse{
 		Message: "Reply removed from comment successfully.",
+	})
+}
+
+func (h Handler) LikeComment(ctx *gin.Context) {
+	var reqUri CommentAndUserUriRequest
+	if err := ctx.ShouldBindUri(&reqUri); err != nil {
+		ctx.AbortWithStatusJSON(http.StatusBadRequest, &internal.ErrorResponse{
+			Message: "Invalid request.",
+			Error:   internal.GenerateRequestValidatorError(err).Error(),
+		})
+		return
+	}
+
+	userId, idExists := ctx.Get("user_id")
+	if !idExists {
+		ctx.AbortWithStatusJSON(http.StatusUnauthorized, &internal.ErrorResponse{
+			Message: "Failed to like comment.",
+			Error:   "invalid token",
+		})
+		return
+	}
+
+	if reqUri.UserId != userId {
+		ctx.AbortWithStatusJSON(http.StatusForbidden, &internal.ErrorResponse{
+			Message: "Failed to like comment.",
+			Error:   "invalid token",
+		})
+		return
+	}
+
+	err := h.Service.LikeComment(ctx.Request.Context(), reqUri)
+	if err != nil {
+		if err == gorm.ErrRecordNotFound {
+			ctx.AbortWithStatusJSON(http.StatusNotFound, internal.ErrorResponse{
+				Message: "Failed to like comment, comment not found.",
+				Error:   err.Error(),
+			})
+			return
+		}
+
+		ctx.AbortWithStatusJSON(http.StatusInternalServerError, internal.ErrorResponse{
+			Message: "Failed to like comment.",
+			Error:   err.Error(),
+		})
+		return
+	}
+
+	ctx.JSON(http.StatusOK, internal.SuccessResponse{
+		Message: "Comment liked successfully.",
+	})
+}
+
+func (h Handler) UnlikeComment(ctx *gin.Context) {
+	var reqUri CommentAndUserUriRequest
+	if err := ctx.ShouldBindUri(&reqUri); err != nil {
+		ctx.AbortWithStatusJSON(http.StatusBadRequest, &internal.ErrorResponse{
+			Message: "Invalid request.",
+			Error:   internal.GenerateRequestValidatorError(err).Error(),
+		})
+		return
+	}
+
+	userId, idExists := ctx.Get("user_id")
+	if !idExists {
+		ctx.AbortWithStatusJSON(http.StatusUnauthorized, &internal.ErrorResponse{
+			Message: "Failed to remove like from comment.",
+			Error:   "invalid token",
+		})
+		return
+	}
+
+	if reqUri.UserId != userId {
+		ctx.AbortWithStatusJSON(http.StatusForbidden, &internal.ErrorResponse{
+			Message: "Failed to remove like from comment.",
+			Error:   "invalid token",
+		})
+		return
+	}
+
+	err := h.Service.UnlikeComment(ctx.Request.Context(), reqUri)
+	if err != nil {
+		if err == gorm.ErrRecordNotFound {
+			ctx.AbortWithStatusJSON(http.StatusNotFound, internal.ErrorResponse{
+				Message: "Failed to remove like from comment, comment not found.",
+				Error:   err.Error(),
+			})
+			return
+		}
+
+		ctx.AbortWithStatusJSON(http.StatusInternalServerError, internal.ErrorResponse{
+			Message: "Failed to remove like from comment.",
+			Error:   err.Error(),
+		})
+		return
+	}
+
+	ctx.JSON(http.StatusOK, internal.SuccessResponse{
+		Message: "Removed like from comment successfully.",
 	})
 }

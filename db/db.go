@@ -35,14 +35,14 @@ func NewPostgreSQL() (postgreSQL, error) {
 		DB_PORT,
 	)
 
-	// var gormConfig gorm.Config
-	// if os.Getenv("ENV") == "LOCAL_DEV" {
-	// 	gormConfig = gorm.Config{}
-	// } else {
-	gormConfig := gorm.Config{
-		// TranslateError: true,
+	var gormConfig gorm.Config
+	if os.Getenv("ENV") == "LOCAL_DEV" {
+		gormConfig = gorm.Config{}
+	} else {
+		gormConfig = gorm.Config{
+			TranslateError: true,
+		}
 	}
-	// }
 
 	db, err := gorm.Open(postgres.Open(connStr), &gormConfig)
 	if err != nil {

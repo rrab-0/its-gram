@@ -35,19 +35,18 @@ func Setup(r *gin.Engine, firebaseAuth *internal.FirebaseAuth, userHandler user.
 		validateToken = firebaseAuth.ValidateToken("")
 	}
 
-	// TODO:
-	// - need to clean all response
-	// - need to handle query responses (not found, already liked, etc)
-
-	// NOTE: ":id" here is user_id from context which is from firebase auth idToken
+	// NOTE: ":id" here is
+	// user_id from context which is,
+	// idToken.Claims["user_id"] from firebase auth idToken.
 	v1 := r.Group("/api/v1")
 	user := v1.Group("/user")
 	{
 		user.POST("/register/:id", validateRegisterToken, userHandler.CreateUser)
 
 		user.GET("/:id", userHandler.GetUser)
-		user.GET("/:id/likes", userHandler.GetLikes)       // TODO: check if working
-		user.GET("/:id/comments", userHandler.GetComments) // TODO: check if working
+		user.GET("/:id/posts", userHandler.GetPosts)
+		user.GET("/:id/comments", userHandler.GetComments)
+		user.GET("/:id/likes", userHandler.GetLikes)
 		user.GET("/search", userHandler.SearchUser)
 
 		user.Use(validateToken)
@@ -66,19 +65,18 @@ func Setup(r *gin.Engine, firebaseAuth *internal.FirebaseAuth, userHandler user.
 
 		post.Use(validateToken)
 		post.POST("/create/:id", postHandler.CreatePost)
-		post.DELETE("/user/:id/delete/:postId", postHandler.DeletePost)
+		post.DELETE("/:postId/user/:id/delete", postHandler.DeletePost)
 
-		post.POST("/user/:id/like/:postId", postHandler.LikePost)
-		post.DELETE("/user/:id/unlike/:postId", postHandler.UnlikePost)
+		post.POST("/:postId/user/:id/like", postHandler.LikePost)
+		post.DELETE("/:postId/user/:id/unlike", postHandler.UnlikePost)
 
-		post.POST("/user/:id/comment/:postId", postHandler.CommentPost)
+		post.POST("/:postId/user/:id/comment", postHandler.CommentPost)
 		post.DELETE("/user/:id/comment/remove/:commentId", postHandler.UncommentPost)
 
 		post.POST("/:postId/user/:id/comment/reply/:commentId", postHandler.ReplyComment)
 		post.DELETE("/user/:id/comment/remove/reply/:commentId", postHandler.RemoveReplyFromComment)
 
-		// TODO: implement this also
-		// post.POST("/user/:id/comment/like/:commentId", postHandler.LikeComment) // TODO: check if working
-		// post.DELETE("/user/:id/comment/unlike/:commentId", postHandler.UnlikeComment) // TODO: check if working
+		post.POST("/user/:id/comment/like/:commentId", postHandler.LikeComment)
+		post.DELETE("/user/:id/comment/unlike/:commentId", postHandler.UnlikeComment)
 	}
 }

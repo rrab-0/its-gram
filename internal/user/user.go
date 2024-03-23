@@ -20,6 +20,19 @@ type FollowOtherUserRequest struct {
 	OtherUserId string `uri:"otherUserId" binding:"required"`
 }
 
+type GetLikesResponse struct {
+	Likes []any `json:"likes"`
+}
+
+type GetLikesCommentQueryRes struct {
+	Type    string           `json:"type"`
+	Comment internal.Comment `json:"comment"`
+}
+type GetLikesPostQueryRes struct {
+	Type string        `json:"type"`
+	Post internal.Post `json:"post"`
+}
+
 type Repository interface {
 	GetUser(ctx context.Context, id string) (internal.User, error)
 	SearchUser(ctx context.Context, username string) ([]internal.User, error)
@@ -32,7 +45,8 @@ type Repository interface {
 	FollowOtherUser(ctx context.Context, userId, otherUserId string) error
 	UnfollowOtherUser(ctx context.Context, userId, otherUserId string) error
 
-	GetLikes(ctx context.Context, userId string) ([]internal.Post, error)
+	GetLikes(ctx context.Context, userId string) ([]any, error)
+	GetPosts(ctx context.Context, userId string) ([]internal.Post, []int, error)
 	GetComments(ctx context.Context, userId string) ([]internal.Comment, error)
 }
 
@@ -48,6 +62,7 @@ type Service interface {
 	FollowOtherUser(ctx context.Context, reqUri FollowOtherUserRequest) error
 	UnfollowOtherUser(ctx context.Context, reqUri FollowOtherUserRequest) error
 
-	GetLikes(ctx context.Context, reqUri internal.UserIdUriRequest) ([]internal.Post, error)
+	GetLikes(ctx context.Context, reqUri internal.UserIdUriRequest) ([]any, error)
+	GetPosts(ctx context.Context, reqUri internal.UserIdUriRequest) ([]internal.Post, []int, error)
 	GetComments(ctx context.Context, reqUri internal.UserIdUriRequest) ([]internal.Comment, error)
 }

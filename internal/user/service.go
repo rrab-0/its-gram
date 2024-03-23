@@ -44,7 +44,7 @@ func (s userService) GetUser(ctx context.Context, reqUri internal.UserIdUriReque
 func (s userService) SearchUser(ctx context.Context, reqQuery UserSearchRequest) ([]internal.User, error) {
 	users, err := s.repo.SearchUser(ctx, reqQuery.Username)
 	if err != nil {
-		return []internal.User{}, err
+		return nil, err
 	}
 
 	return users, nil
@@ -53,7 +53,7 @@ func (s userService) SearchUser(ctx context.Context, reqQuery UserSearchRequest)
 func (s userService) GetUserHomepage(ctx context.Context, reqUri internal.UserIdUriRequest) ([]internal.Post, error) {
 	posts, err := s.repo.GetUserHomepage(ctx, reqUri.UserId)
 	if err != nil {
-		return []internal.Post{}, err
+		return nil, err
 	}
 
 	return posts, nil
@@ -85,10 +85,19 @@ func (s userService) UnfollowOtherUser(ctx context.Context, reqUri FollowOtherUs
 	return s.repo.UnfollowOtherUser(ctx, reqUri.UserId, reqUri.OtherUserId)
 }
 
-func (s userService) GetLikes(ctx context.Context, reqUri internal.UserIdUriRequest) ([]internal.Post, error) {
+func (s userService) GetPosts(ctx context.Context, reqUri internal.UserIdUriRequest) ([]internal.Post, []int, error) {
+	posts, totalComments, err := s.repo.GetPosts(ctx, reqUri.UserId)
+	if err != nil {
+		return nil, nil, err
+	}
+
+	return posts, totalComments, nil
+}
+
+func (s userService) GetLikes(ctx context.Context, reqUri internal.UserIdUriRequest) ([]any, error) {
 	likes, err := s.repo.GetLikes(ctx, reqUri.UserId)
 	if err != nil {
-		return []internal.Post{}, err
+		return nil, err
 	}
 
 	return likes, nil
@@ -97,7 +106,7 @@ func (s userService) GetLikes(ctx context.Context, reqUri internal.UserIdUriRequ
 func (s userService) GetComments(ctx context.Context, reqUri internal.UserIdUriRequest) ([]internal.Comment, error) {
 	comments, err := s.repo.GetComments(ctx, reqUri.UserId)
 	if err != nil {
-		return []internal.Comment{}, err
+		return nil, err
 	}
 
 	return comments, nil

@@ -45,15 +45,22 @@ func (r gormRepository) GetPostById(ctx context.Context, id string) (internal.Po
 	totalComments = len(post.Comments)
 
 	// Get post
-	err = r.db.
+	err = tx.
 		Unscoped().
 		Preload(clause.Associations).
 		Preload("Comments", "parent_id IS NULL").
 		Preload("Comments.CreatedBy").
+		Preload("Comments.Likes").
+		Preload("Comments.Replies").
 		Where("id = ?", id).
 		First(&post).
 		Error
 	if err != nil {
+		tx.Rollback()
+		return internal.Post{}, 0, err
+	}
+
+	if err := tx.Commit().Error; err != nil {
 		return internal.Post{}, 0, err
 	}
 
@@ -170,4 +177,28 @@ func (r gormRepository) ReplyComment(ctx context.Context, userId, description st
 
 func (r gormRepository) RemoveReplyFromComment(ctx context.Context, userId string, commentId uuid.UUID) error {
 	return r.db.WithContext(ctx).Where("id = ?", commentId).Delete(&internal.Comment{}).Error
+}
+
+func (r gormRepository) LikeComment(ctx context.Context, userId string, commentId uuid.UUID) error {
+	var (
+		user    internal.User
+		comment internal.Comment
+	)
+
+	user.ID = userId
+	comment.ID = commentId
+
+	return r.db.Model(&user).Association("LikedComments").Append(&comment)
+}
+
+func (r gormRepository) UnlikeComment(ctx context.Context, userId string, commentId uuid.UUID) error {
+	var (
+		user    internal.User
+		comment internal.Comment
+	)
+
+	user.ID = userId
+	comment.ID = commentId
+
+	return r.db.Model(&user).Association("LikedComments").Delete(&comment)
 }
