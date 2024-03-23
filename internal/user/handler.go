@@ -64,6 +64,17 @@ func (h Handler) CreateUser(ctx *gin.Context) {
 	})
 }
 
+// GetUser is a method to get a user
+// @Summary Get a user
+// @Description Returns a user and their followers, followings, posts, comments, liked posts, and liked comments.
+// @Tags user
+// @Produce json
+// @Param id path string true "user id"
+// @Success 200 {object} internal.SuccessResponse
+// @Failure 400 {object} internal.ErrorResponse
+// @Failure 404 {object} internal.ErrorResponse
+// @Failure 500 {object} internal.ErrorResponse
+// @Router /user/{id} [get]
 func (h Handler) GetUser(ctx *gin.Context) {
 	var reqUri internal.UserIdUriRequest
 	if err := ctx.ShouldBindUri(&reqUri); err != nil {

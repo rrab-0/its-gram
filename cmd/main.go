@@ -7,6 +7,8 @@ import (
 	"net"
 	"os"
 
+	_ "github.com/rrab-0/its-gram/docs"
+
 	"github.com/gin-gonic/gin"
 	"github.com/joho/godotenv"
 	"github.com/rrab-0/its-gram/db"
@@ -18,6 +20,13 @@ import (
 	"golang.ngrok.com/ngrok/config"
 )
 
+// @title           its-gram api docs
+// @version         1.0
+// @description     © Layanan Aplikasi its-gram
+// @termsOfService  http://swagger.io/terms/
+
+// @host      localhost:8080
+// @BasePath  /api/v1
 func main() {
 	if err := godotenv.Load(".env"); err != nil {
 		panic("ERROR: Failed to load .env")

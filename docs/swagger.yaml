@@ -1,0 +1,56 @@
+basePath: /api/v1
+definitions:
+  internal.ErrorResponse:
+    properties:
+      error:
+        type: string
+      message:
+        type: string
+    type: object
+  internal.SuccessResponse:
+    properties:
+      data: {}
+      message:
+        type: string
+    type: object
+host: localhost:8080
+info:
+  contact: {}
+  description: © Layanan Aplikasi its-gram
+  termsOfService: http://swagger.io/terms/
+  title: its-gram api docs
+  version: "1.0"
+paths:
+  /user/{id}:
+    get:
+      description: Returns a user and their followers, followings, posts, comments,
+        liked posts, and liked comments.
+      parameters:
+      - description: user id
+        in: path
+        name: id
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/internal.SuccessResponse'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/internal.ErrorResponse'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/internal.ErrorResponse'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/internal.ErrorResponse'
+      summary: Get a user
+      tags:
+      - user
+swagger: "2.0"

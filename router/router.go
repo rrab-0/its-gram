@@ -8,6 +8,9 @@ import (
 	"github.com/rrab-0/its-gram/internal"
 	"github.com/rrab-0/its-gram/internal/post"
 	"github.com/rrab-0/its-gram/internal/user"
+
+	swaggerFiles "github.com/swaggo/files"
+	ginSwagger "github.com/swaggo/gin-swagger"
 )
 
 func Setup(r *gin.Engine, firebaseAuth *internal.FirebaseAuth, userHandler user.Handler, postHandler post.Handler) {
@@ -18,6 +21,8 @@ func Setup(r *gin.Engine, firebaseAuth *internal.FirebaseAuth, userHandler user.
 		ExposeHeaders:    []string{"Content-Length"},
 		AllowCredentials: true,
 	}))
+
+	r.GET("/swagger/*any", ginSwagger.WrapHandler(swaggerFiles.Handler))
 
 	var (
 		validateRegisterToken gin.HandlerFunc

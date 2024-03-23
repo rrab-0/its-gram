@@ -17,17 +17,6 @@ type ErrorResponse struct {
 	Error   string `json:"error,omitempty"`
 }
 
-type ValidationErrors []error
-
-func (errs ValidationErrors) Error() string {
-	var sb strings.Builder
-	for _, err := range errs {
-		sb.WriteString(err.Error())
-		sb.WriteString("\n")
-	}
-	return strings.TrimSpace(sb.String())
-}
-
 func GenerateRequestValidatorError(err error) error {
 	validationErrs, ok := err.(validator.ValidationErrors)
 	if !ok {
