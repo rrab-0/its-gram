@@ -50,10 +50,10 @@ func (s userService) SearchUser(ctx context.Context, reqQuery UserSearchRequest)
 	return users, nil
 }
 
-func (s userService) GetUserHomepage(ctx context.Context, reqUri internal.UserIdUriRequest) ([]internal.Post, error) {
-	posts, err := s.repo.GetUserHomepage(ctx, reqUri.UserId)
+func (s userService) GetUserHomepage(ctx context.Context, reqUri internal.UserIdUriRequest, reqQuery GetHomepageQueryRequest) (GetHomepageQueryRes, error) {
+	posts, err := s.repo.GetUserHomepage(ctx, reqQuery.Page, reqQuery.Limit, reqUri.UserId)
 	if err != nil {
-		return nil, err
+		return GetHomepageQueryRes{}, err
 	}
 
 	return posts, nil

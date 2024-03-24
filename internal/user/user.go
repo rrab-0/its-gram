@@ -28,15 +28,26 @@ type GetLikesCommentQueryRes struct {
 	Type    string           `json:"type"`
 	Comment internal.Comment `json:"comment"`
 }
+
 type GetLikesPostQueryRes struct {
 	Type string        `json:"type"`
 	Post internal.Post `json:"post"`
 }
 
+type GetHomepageQueryRequest struct {
+	Page  int `form:"page"`
+	Limit int `form:"limit"`
+}
+
+type GetHomepageQueryRes struct {
+	TotalPage int             `json:"total_page"`
+	Posts     []internal.Post `json:"posts"`
+}
+
 type Repository interface {
 	GetUser(ctx context.Context, id string) (internal.User, error)
 	SearchUser(ctx context.Context, username string) ([]internal.User, error)
-	GetUserHomepage(ctx context.Context, id string) ([]internal.Post, error)
+	GetUserHomepage(ctx context.Context, page, limit int, id string) (GetHomepageQueryRes, error)
 
 	CreateUser(ctx context.Context, user internal.User) (internal.User, error)
 	UpdateUserProfile(ctx context.Context, id, username, picture string) (internal.User, error)
@@ -53,7 +64,7 @@ type Repository interface {
 type Service interface {
 	GetUser(ctx context.Context, reqUri internal.UserIdUriRequest) (internal.User, error)
 	SearchUser(ctx context.Context, reqQuery UserSearchRequest) ([]internal.User, error)
-	GetUserHomepage(ctx context.Context, reqUri internal.UserIdUriRequest) ([]internal.Post, error)
+	GetUserHomepage(ctx context.Context, reqUri internal.UserIdUriRequest, reqQuery GetHomepageQueryRequest) (GetHomepageQueryRes, error)
 
 	CreateUser(ctx context.Context, firebaseId, username, email, picture string) (internal.User, error)
 	UpdateUserProfile(ctx context.Context, reqUri internal.UserIdUriRequest, reqBody UpdateUserProfileRequest) (internal.User, error)

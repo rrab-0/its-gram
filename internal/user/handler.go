@@ -141,8 +141,36 @@ func (h Handler) SearchUser(ctx *gin.Context) {
 	})
 }
 
+const (
+	MAXIMUM_LIMIT = 50
+	MINIMUM_LIMIT = 10
+	MINIMUM_PAGE  = 1
+)
+
 func (h Handler) GetUserHomepage(ctx *gin.Context) {
-	var reqUri internal.UserIdUriRequest
+	var (
+		reqUri   internal.UserIdUriRequest
+		reqQuery GetHomepageQueryRequest
+	)
+
+	if err := ctx.Bind(&reqQuery); err != nil {
+		ctx.AbortWithStatusJSON(http.StatusBadRequest, &internal.ErrorResponse{
+			Message: "Invalid request.",
+			Error:   internal.GenerateRequestValidatorError(err).Error(),
+		})
+		return
+	}
+
+	if reqQuery.Limit < MINIMUM_LIMIT {
+		reqQuery.Limit = MINIMUM_LIMIT
+	} else if reqQuery.Limit > MAXIMUM_LIMIT {
+		reqQuery.Limit = MAXIMUM_LIMIT
+	}
+
+	if reqQuery.Page < MINIMUM_PAGE {
+		reqQuery.Page = MINIMUM_PAGE
+	}
+
 	if err := ctx.ShouldBindUri(&reqUri); err != nil {
 		ctx.AbortWithStatusJSON(http.StatusBadRequest, &internal.ErrorResponse{
 			Message: "Invalid request.",
@@ -168,7 +196,7 @@ func (h Handler) GetUserHomepage(ctx *gin.Context) {
 		return
 	}
 
-	posts, err := h.Service.GetUserHomepage(ctx.Request.Context(), reqUri)
+	posts, err := h.Service.GetUserHomepage(ctx.Request.Context(), reqUri, reqQuery)
 	if err != nil {
 		if err == gorm.ErrRecordNotFound {
 			ctx.AbortWithStatusJSON(http.StatusNotFound, internal.ErrorResponse{

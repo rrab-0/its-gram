@@ -2,6 +2,7 @@ package user
 
 import (
 	"context"
+	"math"
 	"sort"
 	"time"
 
@@ -49,32 +50,65 @@ func (r gormRepository) SearchUser(ctx context.Context, username string) ([]inte
 	return users, nil
 }
 
-func (r gormRepository) GetUserHomepage(ctx context.Context, id string) ([]internal.Post, error) {
+// TODO:
+// - implement infinite scrolling with cursor cus its better
+// - should prob return posts and total page, handle return `GetHomepageQueryRes` in service
+func (r gormRepository) GetUserHomepage(ctx context.Context, page, limit int, id string) (GetHomepageQueryRes, error) {
 	var (
-		followingsPosts []internal.Post
+		followingsPosts GetHomepageQueryRes
 		user            internal.User
+		tx              = r.db.WithContext(ctx).Begin()
+		totalPosts      int
 	)
 
+	// Get total posts to validate page request
 	user.ID = id
+	err := tx.Preload("Followings.Posts").First(&user).Error
+	if err != nil {
+		tx.Rollback()
+		return GetHomepageQueryRes{}, err
+	}
 
-	res := r.db.
-		WithContext(ctx).
-		Preload("Followings.Posts").
+	for _, following := range user.Followings {
+		totalPosts += len(following.Posts)
+	}
+
+	totalPage := math.Ceil(float64(totalPosts) / float64(limit))
+	if page > int(totalPage) {
+		page = int(totalPage)
+	}
+
+	// Get offset from page and limit then query posts
+	offset := (page - 1) * limit
+	res := tx.
+		Preload("Followings.Posts", func(db *gorm.DB) *gorm.DB {
+			return db.
+				Order("created_at DESC").
+				Offset(offset).
+				Limit(limit)
+		}).
 		Preload("Followings.Posts.CreatedBy").
 		Preload("Followings.Posts.Likes").
 		Preload("Followings.Posts.Comments").
 		First(&user)
 	if res.Error != nil {
-		return []internal.Post{}, res.Error
+		tx.Rollback()
+		return GetHomepageQueryRes{}, res.Error
+	}
+
+	if err := tx.Commit().Error; err != nil {
+		return GetHomepageQueryRes{}, err
 	}
 
 	if res.RowsAffected == 0 || len(user.Followings) == 0 {
-		return []internal.Post{}, gorm.ErrRecordNotFound
+		return GetHomepageQueryRes{}, gorm.ErrRecordNotFound
 	}
 
 	for _, following := range user.Followings {
-		followingsPosts = append(followingsPosts, following.Posts...)
+		followingsPosts.Posts = append(followingsPosts.Posts, following.Posts...)
 	}
+
+	followingsPosts.TotalPage = int(totalPage)
 	return followingsPosts, nil
 }
 

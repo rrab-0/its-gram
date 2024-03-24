@@ -1,6 +1,7 @@
 package router
 
 import (
+	"log"
 	"os"
 
 	"github.com/gin-contrib/cors"
@@ -22,7 +23,10 @@ func Setup(r *gin.Engine, firebaseAuth *internal.FirebaseAuth, userHandler user.
 		AllowCredentials: true,
 	}))
 
-	r.GET("/swagger/*any", ginSwagger.WrapHandler(swaggerFiles.Handler))
+	r.GET("/swagger/*any", ginSwagger.WrapHandler(swaggerFiles.Handler), func(ctx *gin.Context) {
+		log.Println("SUCCESS: Swagger API documentation is running, go to /swagger/index.html for more info.")
+		ctx.Next()
+	})
 
 	var (
 		validateRegisterToken gin.HandlerFunc
