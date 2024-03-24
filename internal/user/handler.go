@@ -214,7 +214,143 @@ func (h Handler) GetUserHomepage(ctx *gin.Context) {
 	}
 
 	ctx.JSON(http.StatusOK, internal.SuccessResponse{
-		Message: "User fetched successfully.",
+		Message: "User's homepage fetched successfully.",
+		Data:    posts,
+	})
+}
+
+func (h Handler) GetUserHomepageInitialCursor(ctx *gin.Context) {
+	var (
+		reqUri   internal.UserIdUriRequest
+		reqQuery GetUserHomepageInitialCursorQueryRequest
+	)
+
+	if err := ctx.Bind(&reqQuery); err != nil {
+		ctx.AbortWithStatusJSON(http.StatusBadRequest, &internal.ErrorResponse{
+			Message: "Invalid request.",
+			Error:   internal.GenerateRequestValidatorError(err).Error(),
+		})
+		return
+	}
+
+	if reqQuery.Limit < MINIMUM_LIMIT {
+		reqQuery.Limit = MINIMUM_LIMIT
+	} else if reqQuery.Limit > MAXIMUM_LIMIT {
+		reqQuery.Limit = MAXIMUM_LIMIT
+	}
+
+	if err := ctx.ShouldBindUri(&reqUri); err != nil {
+		ctx.AbortWithStatusJSON(http.StatusBadRequest, &internal.ErrorResponse{
+			Message: "Invalid request.",
+			Error:   internal.GenerateRequestValidatorError(err).Error(),
+		})
+		return
+	}
+
+	userId, idExists := ctx.Get("user_id")
+	if !idExists {
+		ctx.AbortWithStatusJSON(http.StatusUnauthorized, &internal.ErrorResponse{
+			Message: "Failed to fetch user's initial cursor homepage.",
+			Error:   "invalid token",
+		})
+		return
+	}
+
+	if reqUri.UserId != userId {
+		ctx.AbortWithStatusJSON(http.StatusForbidden, &internal.ErrorResponse{
+			Message: "Failed to fetch user's initial cursor homepage.",
+			Error:   "invalid token",
+		})
+		return
+	}
+
+	posts, err := h.Service.GetUserHomepageInitialCursor(ctx.Request.Context(), reqUri, reqQuery)
+	if err != nil {
+		if err == gorm.ErrRecordNotFound {
+			ctx.AbortWithStatusJSON(http.StatusNotFound, internal.ErrorResponse{
+				Message: "Failed to fetch user's initial cursor homempage.",
+				Error:   err.Error(),
+			})
+			return
+		}
+
+		ctx.AbortWithStatusJSON(http.StatusInternalServerError, internal.ErrorResponse{
+			Message: "Failed to fetch user's initial cursor homempage.",
+			Error:   err.Error(),
+		})
+		return
+	}
+
+	ctx.JSON(http.StatusOK, internal.SuccessResponse{
+		Message: "User's initial cursor homepage fetched successfully.",
+		Data:    posts,
+	})
+}
+
+func (h Handler) GetUserHomepageCursor(ctx *gin.Context) {
+	var (
+		reqUri   internal.UserIdUriRequest
+		reqQuery GetUserHomepageCursorQueryRequest
+	)
+
+	if err := ctx.Bind(&reqQuery); err != nil {
+		ctx.AbortWithStatusJSON(http.StatusBadRequest, &internal.ErrorResponse{
+			Message: "Invalid request.",
+			Error:   internal.GenerateRequestValidatorError(err).Error(),
+		})
+		return
+	}
+
+	if reqQuery.Limit < MINIMUM_LIMIT {
+		reqQuery.Limit = MINIMUM_LIMIT
+	} else if reqQuery.Limit > MAXIMUM_LIMIT {
+		reqQuery.Limit = MAXIMUM_LIMIT
+	}
+
+	if err := ctx.ShouldBindUri(&reqUri); err != nil {
+		ctx.AbortWithStatusJSON(http.StatusBadRequest, &internal.ErrorResponse{
+			Message: "Invalid request.",
+			Error:   internal.GenerateRequestValidatorError(err).Error(),
+		})
+		return
+	}
+
+	userId, idExists := ctx.Get("user_id")
+	if !idExists {
+		ctx.AbortWithStatusJSON(http.StatusUnauthorized, &internal.ErrorResponse{
+			Message: "Failed to fetch user's cursor homepage.",
+			Error:   "invalid token",
+		})
+		return
+	}
+
+	if reqUri.UserId != userId {
+		ctx.AbortWithStatusJSON(http.StatusForbidden, &internal.ErrorResponse{
+			Message: "Failed to fetch user's cursor homepage.",
+			Error:   "invalid token",
+		})
+		return
+	}
+
+	posts, err := h.Service.GetUserHomepageCursor(ctx.Request.Context(), reqUri, reqQuery)
+	if err != nil {
+		if err == gorm.ErrRecordNotFound {
+			ctx.AbortWithStatusJSON(http.StatusNotFound, internal.ErrorResponse{
+				Message: "Failed to fetch user's cursor homempage.",
+				Error:   err.Error(),
+			})
+			return
+		}
+
+		ctx.AbortWithStatusJSON(http.StatusInternalServerError, internal.ErrorResponse{
+			Message: "Failed to fetch user's cursor homempage.",
+			Error:   err.Error(),
+		})
+		return
+	}
+
+	ctx.JSON(http.StatusOK, internal.SuccessResponse{
+		Message: "User's cursor homepage fetched successfully.",
 		Data:    posts,
 	})
 }

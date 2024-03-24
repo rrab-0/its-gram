@@ -59,6 +59,25 @@ func (s userService) GetUserHomepage(ctx context.Context, reqUri internal.UserId
 	return posts, nil
 }
 
+func (s userService) GetUserHomepageInitialCursor(ctx context.Context, reqUri internal.UserIdUriRequest, reqQuery GetUserHomepageInitialCursorQueryRequest) (*GetUserHomepageCursorQueryRes, error) {
+	posts, err := s.repo.GetUserHomepageInitialCursor(ctx, reqQuery.Limit, reqUri.UserId)
+	if err != nil {
+		return nil, err
+	}
+
+	return posts, nil
+}
+
+func (s userService) GetUserHomepageCursor(ctx context.Context, reqUri internal.UserIdUriRequest, reqQuery GetUserHomepageCursorQueryRequest) (*GetUserHomepageCursorQueryRes, error) {
+	posts, err := s.repo.GetUserHomepageCursor(ctx, reqQuery.Cursor, reqQuery.Limit, reqUri.UserId)
+	if err != nil {
+		return nil, err
+	}
+
+	return posts, nil
+
+}
+
 func (s userService) UpdateUserProfile(ctx context.Context, reqUri internal.UserIdUriRequest, reqBody UpdateUserProfileRequest) (internal.User, error) {
 	user, err := s.repo.UpdateUserProfile(ctx, reqUri.UserId, reqBody.Username, reqBody.PictureLink)
 	if err != nil {

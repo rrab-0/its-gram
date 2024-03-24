@@ -47,7 +47,7 @@ make run
 
 ### How to configure swagger
 
-1. Configure the swagger main `api` info at `main.go`, then add the info at your handlers too.
+1. Configure the swagger main api info (see comments on top of `func main()` in `main.go`), then add the info at your handlers too.
 
 2. Then first try to do a `swag init -g cmd/main.go` to generate the swagger docs package.
 
@@ -59,13 +59,17 @@ import (
 )
 ```
 
-4. Add handler for swagger at `router.go`, example `r.GET("/swagger/*any", ginSwagger.WrapHandler(swaggerFiles.Handler))`, don't forget the dependencies.
+4. Add handler for swagger at `router.go` so we can access the docs at `/swagger/index.html`.
 
 ```
 import (
     swaggerFiles "github.com/swaggo/files"
-	ginSwagger "github.com/swaggo/gin-swagger"
+    ginSwagger "github.com/swaggo/gin-swagger"
 )
+
+func setupRouter() {
+    r.GET("/swagger/*any", ginSwagger.WrapHandler(swaggerFiles.Handler))
+}
 ```
 
 3. Then do `swag init`

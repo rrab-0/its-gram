@@ -44,10 +44,26 @@ type GetHomepageQueryRes struct {
 	Posts     []internal.Post `json:"posts"`
 }
 
+type GetUserHomepageCursorQueryRes struct {
+	NextCursor string          `json:"next_cursor"`
+	Posts      []internal.Post `json:"posts"`
+}
+
+type GetUserHomepageCursorQueryRequest struct {
+	Cursor string `form:"cursor" binding:"required"`
+	Limit  int    `form:"limit" binding:"required"`
+}
+
+type GetUserHomepageInitialCursorQueryRequest struct {
+	Limit int `form:"limit" binding:"required"`
+}
+
 type Repository interface {
 	GetUser(ctx context.Context, id string) (internal.User, error)
 	SearchUser(ctx context.Context, username string) ([]internal.User, error)
 	GetUserHomepage(ctx context.Context, page, limit int, id string) (GetHomepageQueryRes, error)
+	GetUserHomepageInitialCursor(ctx context.Context, limit int, id string) (*GetUserHomepageCursorQueryRes, error)
+	GetUserHomepageCursor(ctx context.Context, cursor string, limit int, id string) (*GetUserHomepageCursorQueryRes, error)
 
 	CreateUser(ctx context.Context, user internal.User) (internal.User, error)
 	UpdateUserProfile(ctx context.Context, id, username, picture string) (internal.User, error)
@@ -65,6 +81,8 @@ type Service interface {
 	GetUser(ctx context.Context, reqUri internal.UserIdUriRequest) (internal.User, error)
 	SearchUser(ctx context.Context, reqQuery UserSearchRequest) ([]internal.User, error)
 	GetUserHomepage(ctx context.Context, reqUri internal.UserIdUriRequest, reqQuery GetHomepageQueryRequest) (GetHomepageQueryRes, error)
+	GetUserHomepageInitialCursor(ctx context.Context, reqUri internal.UserIdUriRequest, reqQuery GetUserHomepageInitialCursorQueryRequest) (*GetUserHomepageCursorQueryRes, error)
+	GetUserHomepageCursor(ctx context.Context, reqUri internal.UserIdUriRequest, reqQuery GetUserHomepageCursorQueryRequest) (*GetUserHomepageCursorQueryRes, error)
 
 	CreateUser(ctx context.Context, firebaseId, username, email, picture string) (internal.User, error)
 	UpdateUserProfile(ctx context.Context, reqUri internal.UserIdUriRequest, reqBody UpdateUserProfileRequest) (internal.User, error)

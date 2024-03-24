@@ -3,6 +3,7 @@ package user
 import (
 	"context"
 	"math"
+	"net/url"
 	"sort"
 	"time"
 
@@ -50,9 +51,6 @@ func (r gormRepository) SearchUser(ctx context.Context, username string) ([]inte
 	return users, nil
 }
 
-// TODO:
-// - implement infinite scrolling with cursor cus its better
-// - should prob return posts and total page, handle return `GetHomepageQueryRes` in service
 func (r gormRepository) GetUserHomepage(ctx context.Context, page, limit int, id string) (GetHomepageQueryRes, error) {
 	var (
 		followingsPosts GetHomepageQueryRes
@@ -110,6 +108,82 @@ func (r gormRepository) GetUserHomepage(ctx context.Context, page, limit int, id
 
 	followingsPosts.TotalPage = int(totalPage)
 	return followingsPosts, nil
+}
+
+func (r gormRepository) GetUserHomepageInitialCursor(ctx context.Context, limit int, id string) (*GetUserHomepageCursorQueryRes, error) {
+	var (
+		user  internal.User
+		posts []internal.Post
+	)
+
+	user.ID = id
+	res := r.db.WithContext(ctx).
+		Preload("Followings.Posts", func(db *gorm.DB) *gorm.DB {
+			return db.
+				Order("created_at DESC").
+				Limit(limit)
+		}).
+		Preload("Followings.Posts.CreatedBy").
+		Preload("Followings.Posts.Likes").
+		Preload("Followings.Posts.Comments").
+		First(&user)
+	if res.Error != nil {
+		return nil, res.Error
+	}
+
+	if res.RowsAffected == 0 || len(user.Followings) == 0 {
+		return nil, gorm.ErrRecordNotFound
+	}
+
+	for _, following := range user.Followings {
+		posts = append(posts, following.Posts...)
+	}
+
+	return &GetUserHomepageCursorQueryRes{
+		NextCursor: url.QueryEscape(posts[len(posts)-1].CreatedAt.Format(time.RFC3339Nano)),
+		Posts:      posts,
+	}, nil
+}
+
+func (r gormRepository) GetUserHomepageCursor(ctx context.Context, cursor string, limit int, id string) (*GetUserHomepageCursorQueryRes, error) {
+	var (
+		user  internal.User
+		posts []internal.Post
+	)
+
+	cursorTime, err := time.Parse(time.RFC3339Nano, cursor)
+	if err != nil {
+		return nil, err
+	}
+
+	user.ID = id
+	res := r.db.WithContext(ctx).
+		Preload("Followings.Posts", func(db *gorm.DB) *gorm.DB {
+			return db.
+				Where("created_at < ?", cursorTime).
+				Order("created_at DESC").
+				Limit(limit)
+		}).
+		Preload("Followings.Posts.CreatedBy").
+		Preload("Followings.Posts.Likes").
+		Preload("Followings.Posts.Comments").
+		First(&user)
+	if res.Error != nil {
+		return nil, res.Error
+	}
+
+	if res.RowsAffected == 0 || len(user.Followings) == 0 {
+		return nil, gorm.ErrRecordNotFound
+	}
+
+	for _, following := range user.Followings {
+		posts = append(posts, following.Posts...)
+	}
+
+	return &GetUserHomepageCursorQueryRes{
+		NextCursor: url.QueryEscape(posts[len(posts)-1].CreatedAt.Format(time.RFC3339Nano)),
+		Posts:      posts,
+	}, nil
 }
 
 func (r gormRepository) UpdateUserProfile(ctx context.Context, id, username, picture string) (internal.User, error) {

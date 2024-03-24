@@ -60,6 +60,9 @@ func Setup(r *gin.Engine, firebaseAuth *internal.FirebaseAuth, userHandler user.
 
 		user.Use(validateToken)
 		user.GET("/:id/homepage", userHandler.GetUserHomepage)
+		// TODO: need to find a way to pass valid cursor to gorm query
+		user.GET("/:id/homepage/cursor/initial", userHandler.GetUserHomepageInitialCursor)
+		user.GET("/:id/homepage/cursor", userHandler.GetUserHomepageCursor)
 		user.PATCH("/profile/update/:id", userHandler.UpdateUserProfile)
 		user.DELETE("/delete/:id", userHandler.DeleteUser)
 
