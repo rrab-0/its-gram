@@ -1,7 +1,7 @@
 {
     "client": "Thunder Client",
     "collectionName": "its-gram",
-    "dateExported": "2024-03-24T03:51:54.125Z",
+    "dateExported": "2024-03-24T09:44:18.102Z",
     "version": "1.1",
     "folders": [
         {
@@ -154,6 +154,53 @@
             "modified": "2024-03-23T01:31:42.242Z",
             "headers": [],
             "params": [],
+            "reqType": "get",
+            "tests": []
+        },
+        {
+            "_id": "9fa356bb-cfd1-4aea-97fa-6060ca6da68c",
+            "colId": "deed27df-f144-4346-941b-1fb8f879d572",
+            "containerId": "e0e2ac47-b225-448a-b50e-8dbcef565cfb",
+            "name": "get initial cursor homepage",
+            "url": "http://localhost:8080/api/v1/user/2/homepage/cursor/initial?limit=10",
+            "method": "GET",
+            "sortNum": 10000,
+            "created": "2024-03-24T06:03:36.167Z",
+            "modified": "2024-03-24T06:04:39.712Z",
+            "headers": [],
+            "params": [
+                {
+                    "name": "limit",
+                    "value": "10",
+                    "isPath": false
+                }
+            ],
+            "reqType": "get",
+            "tests": []
+        },
+        {
+            "_id": "a0362964-6d46-42e6-82ed-7e9c59e54ac1",
+            "colId": "deed27df-f144-4346-941b-1fb8f879d572",
+            "containerId": "e0e2ac47-b225-448a-b50e-8dbcef565cfb",
+            "name": "get cursor homepage",
+            "url": "http://localhost:8080/api/v1/user/2/homepage/cursor?cursor=2024-03-23T10%3A33%3A10.978001%2B07%3A00&limit=10",
+            "method": "GET",
+            "sortNum": 10625,
+            "created": "2024-03-24T06:10:00.449Z",
+            "modified": "2024-03-24T09:42:07.995Z",
+            "headers": [],
+            "params": [
+                {
+                    "name": "cursor",
+                    "value": "2024-03-23T10%3A33%3A10.978001%2B07%3A00",
+                    "isPath": false
+                },
+                {
+                    "name": "limit",
+                    "value": "10",
+                    "isPath": false
+                }
+            ],
             "reqType": "get",
             "tests": []
         },
