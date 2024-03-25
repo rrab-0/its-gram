@@ -138,7 +138,7 @@ func (f *FirebaseAuth) ValidateNgrokDevToken(funcType string) gin.HandlerFunc {
 	}
 }
 
-var dummyUserCount = 1
+var dummyUserCount = 3
 
 // Checks if userId (doesn't have to be valid) is present in URI request or not,
 // if present sets random values in contexts needed.

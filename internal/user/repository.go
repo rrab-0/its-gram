@@ -23,7 +23,22 @@ func NewRepository(db *gorm.DB) Repository {
 }
 
 func (r gormRepository) CreateUser(ctx context.Context, user internal.User) (internal.User, error) {
-	err := r.db.WithContext(ctx).Create(&user).Error
+	err := r.db.
+		WithContext(ctx).
+		Clauses(clause.OnConflict{
+			Columns: []clause.Column{{Name: "email"}},
+			DoUpdates: clause.Assignments(map[string]interface{}{
+				"id":           user.ID,
+				"created_at":   time.Now(),
+				"updated_at":   time.Now(),
+				"deleted_at":   nil,
+				"username":     user.Username,
+				"email":        user.Email,
+				"picture_link": user.PictureLink,
+			}),
+		}).
+		Create(&user).
+		Error
 	if err != nil {
 		return internal.User{}, err
 	}
@@ -211,7 +226,7 @@ func (r gormRepository) UpdateUserProfile(ctx context.Context, id, username, pic
 // - Followings
 // Remove user's actual:
 // - Posts
-// Then hard delete the user
+// Then soft delete the user
 func (r gormRepository) DeleteUser(ctx context.Context, id string) (internal.User, error) {
 	var (
 		user internal.User
@@ -250,7 +265,7 @@ func (r gormRepository) DeleteUser(ctx context.Context, id string) (internal.Use
 		return internal.User{}, err
 	}
 
-	if err := tx.Unscoped().Delete(&user).Error; err != nil {
+	if err := tx.Delete(&user).Error; err != nil {
 		tx.Rollback()
 		return internal.User{}, err
 	}
