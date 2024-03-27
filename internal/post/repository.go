@@ -36,6 +36,12 @@ func (r gormRepository) GetPostById(ctx context.Context, id string) (internal.Po
 		tx            = r.db.WithContext(ctx).Begin()
 	)
 
+	defer func() {
+		if r := recover(); r != nil {
+			tx.Rollback()
+		}
+	}()
+
 	// Lazy way to get total comments in post
 	err := tx.Unscoped().Preload("Comments").Where("id = ?", id).First(&post).Error
 	if err != nil {

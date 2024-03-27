@@ -63,18 +63,15 @@ func main() {
 		postHandler,
 	)
 
-	if err := r.Run(os.Getenv("DEV_HOST") + ":" + os.Getenv("DEV_PORT")); err != nil {
+	if err := runServer(context.Background(), r); err != nil {
 		panic("ERROR: Failed to start server: " + err.Error())
 	}
 }
 
 func runServer(ctx context.Context, r *gin.Engine) error {
 	env := os.Getenv("ENV")
-	if env == "" {
-		return fmt.Errorf("ENV in .env is not set")
-	}
 
-	if os.Getenv("ENV") == "NGROK_DEV" {
+	if env == "NGROK_DEV" {
 		listener, err := ngrokListener(ctx)
 		if err != nil {
 			return err
@@ -86,8 +83,12 @@ func runServer(ctx context.Context, r *gin.Engine) error {
 		return r.RunListener(listener)
 	}
 
-	if os.Getenv("ENV") == "LOCAL_DEV" {
+	if env == "LOCAL_DEV" {
 		return r.Run(os.Getenv("DEV_HOST") + ":" + os.Getenv("DEV_PORT"))
+	}
+
+	if env == "" {
+		return r.Run(":" + os.Getenv("DEV_PORT"))
 	}
 
 	return nil

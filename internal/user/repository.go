@@ -74,6 +74,12 @@ func (r gormRepository) GetUserHomepage(ctx context.Context, page, limit int, id
 		totalPosts      int
 	)
 
+	defer func() {
+		if r := recover(); r != nil {
+			tx.Rollback()
+		}
+	}()
+
 	// Get total posts to validate page request
 	user.ID = id
 	err := tx.Preload("Followings.Posts").First(&user).Error
@@ -132,7 +138,8 @@ func (r gormRepository) GetUserHomepageInitialCursor(ctx context.Context, limit 
 	)
 
 	user.ID = id
-	res := r.db.WithContext(ctx).
+	res := r.db.
+		WithContext(ctx).
 		Preload("Followings.Posts", func(db *gorm.DB) *gorm.DB {
 			return db.
 				Order("created_at DESC").
@@ -303,7 +310,11 @@ func (r gormRepository) FollowOtherUser(ctx context.Context, userId, otherUserId
 		return err
 	}
 
-	return tx.Commit().Error
+	if err := tx.Commit().Error; err != nil {
+		return err
+	}
+
+	return nil
 }
 
 func (r gormRepository) UnfollowOtherUser(ctx context.Context, userId, otherUserId string) error {
@@ -332,18 +343,11 @@ func (r gormRepository) UnfollowOtherUser(ctx context.Context, userId, otherUser
 		return err
 	}
 
-	return tx.Commit().Error
-}
-
-func getCreatedAt(like interface{}) time.Time {
-	switch v := like.(type) {
-	case internal.Post:
-		return v.CreatedAt
-	case internal.Comment:
-		return v.CreatedAt
-	default:
-		return time.Time{}
+	if err := tx.Commit().Error; err != nil {
+		return err
 	}
+
+	return nil
 }
 
 func (r gormRepository) GetPosts(ctx context.Context, userId string) ([]internal.Post, []int, error) {
@@ -352,6 +356,12 @@ func (r gormRepository) GetPosts(ctx context.Context, userId string) ([]internal
 		posts         []internal.Post
 		tx            = r.db.WithContext(ctx).Begin()
 	)
+
+	defer func() {
+		if r := recover(); r != nil {
+			tx.Rollback()
+		}
+	}()
 
 	err := tx.Unscoped().Preload("Comments").Where("user_id = ?", userId).Find(&posts).Error
 	if err != nil {
@@ -386,6 +396,17 @@ func (r gormRepository) GetPosts(ctx context.Context, userId string) ([]internal
 	}
 
 	return posts, totalComments, nil
+}
+
+func getCreatedAt(like interface{}) time.Time {
+	switch v := like.(type) {
+	case internal.Post:
+		return v.CreatedAt
+	case internal.Comment:
+		return v.CreatedAt
+	default:
+		return time.Time{}
+	}
 }
 
 func (r gormRepository) GetLikes(ctx context.Context, userId string) ([]any, error) {
