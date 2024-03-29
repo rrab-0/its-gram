@@ -73,17 +73,6 @@ type User struct {
 	Followings []*User `json:"followings" gorm:"many2many:user_followings;"` // "user" many to many "user"
 }
 
-// TODO:
-// there maybe a way to have a soft delete for user table and
-// allow user to delete account and reregister with the same email
-//
-// func (u *User) BeforeCreate(tx *gorm.DB) error {
-// 	if u.DeletedAt.Valid {
-// 		tx.Clauses(clause.OnConflict{DoNothing: true})
-// 	}
-// 	return nil
-// }
-
 type UserIdUriRequest struct {
 	UserId string `uri:"id" binding:"required"`
 }

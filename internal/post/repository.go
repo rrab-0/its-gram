@@ -36,12 +36,6 @@ func (r gormRepository) GetPostById(ctx context.Context, id string) (internal.Po
 		tx            = r.db.WithContext(ctx).Begin()
 	)
 
-	defer func() {
-		if r := recover(); r != nil {
-			tx.Rollback()
-		}
-	}()
-
 	// Lazy way to get total comments in post
 	err := tx.Unscoped().Preload("Comments").Where("id = ?", id).First(&post).Error
 	if err != nil {
@@ -148,12 +142,6 @@ func (r gormRepository) ReplyComment(ctx context.Context, userId, description st
 		newComment internal.Comment
 		tx         = r.db.WithContext(ctx).Begin()
 	)
-
-	defer func() {
-		if r := recover(); r != nil {
-			tx.Rollback()
-		}
-	}()
 
 	newComment.UserID = userId
 	newComment.PostCreatedInID = postId

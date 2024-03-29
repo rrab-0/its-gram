@@ -19,8 +19,33 @@ func NewHandler(db *gorm.DB) Handler {
 	}
 }
 
-// TODO: check if after deleting, the same user (email) can register again or not
 func (h Handler) CreateUser(ctx *gin.Context) {
+	var reqUri internal.UserIdUriRequest
+	if err := ctx.ShouldBindUri(&reqUri); err != nil {
+		ctx.AbortWithStatusJSON(http.StatusBadRequest, &internal.ErrorResponse{
+			Message: "Invalid request.",
+			Error:   internal.GenerateRequestValidatorError(err).Error(),
+		})
+		return
+	}
+
+	userId, idExists := ctx.Get("user_id")
+	if !idExists {
+		ctx.AbortWithStatusJSON(http.StatusUnauthorized, &internal.ErrorResponse{
+			Message: "Failed to register user.",
+			Error:   "invalid token",
+		})
+		return
+	}
+
+	if reqUri.UserId != userId {
+		ctx.AbortWithStatusJSON(http.StatusForbidden, &internal.ErrorResponse{
+			Message: "Failed to register user.",
+			Error:   "invalid token",
+		})
+		return
+	}
+
 	firebaseId, fExists := ctx.Get("user_id")
 	username, uExists := ctx.Get("username")
 	email, eExists := ctx.Get("email")

@@ -41,7 +41,7 @@ func main() {
 		log.Fatalf("ERROR: Failed to migrate PostgreSQL: %v", err.Error())
 	}
 
-	firebase, err := internal.NewFirebaseApp(os.Getenv("SERVICE_ACCOUNT_KEY_PATH"))
+	firebase, err := internal.NewFirebaseApp(os.Getenv("SERVICE_ACCOUNT_KEY_FILE_NAME"))
 	if err != nil {
 		log.Fatalf("ERROR: Failed to initialize firebase app: %v", err.Error())
 	}

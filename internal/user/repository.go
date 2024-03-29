@@ -74,12 +74,6 @@ func (r gormRepository) GetUserHomepage(ctx context.Context, page, limit int, id
 		totalPosts      int
 	)
 
-	defer func() {
-		if r := recover(); r != nil {
-			tx.Rollback()
-		}
-	}()
-
 	// Get total posts to validate page request
 	user.ID = id
 	err := tx.Preload("Followings.Posts").First(&user).Error
@@ -240,12 +234,6 @@ func (r gormRepository) DeleteUser(ctx context.Context, id string) (internal.Use
 		tx   = r.db.WithContext(ctx).Begin()
 	)
 
-	defer func() {
-		if r := recover(); r != nil {
-			tx.Rollback()
-		}
-	}()
-
 	user.ID = id
 
 	err := tx.Model(&user).Association("Followers").Clear()
@@ -291,12 +279,6 @@ func (r gormRepository) FollowOtherUser(ctx context.Context, userId, otherUserId
 		tx        = r.db.WithContext(ctx).Begin()
 	)
 
-	defer func() {
-		if r := recover(); r != nil {
-			tx.Rollback()
-		}
-	}()
-
 	user.ID = userId
 	otherUser.ID = otherUserId
 
@@ -324,12 +306,6 @@ func (r gormRepository) UnfollowOtherUser(ctx context.Context, userId, otherUser
 		tx        = r.db.WithContext(ctx).Begin()
 	)
 
-	defer func() {
-		if r := recover(); r != nil {
-			tx.Rollback()
-		}
-	}()
-
 	user.ID = userId
 	otherUser.ID = otherUserId
 
@@ -356,12 +332,6 @@ func (r gormRepository) GetPosts(ctx context.Context, userId string) ([]internal
 		posts         []internal.Post
 		tx            = r.db.WithContext(ctx).Begin()
 	)
-
-	defer func() {
-		if r := recover(); r != nil {
-			tx.Rollback()
-		}
-	}()
 
 	err := tx.Unscoped().Preload("Comments").Where("user_id = ?", userId).Find(&posts).Error
 	if err != nil {
