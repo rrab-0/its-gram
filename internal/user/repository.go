@@ -136,6 +136,7 @@ func (r gormRepository) GetUserHomepageInitialCursor(ctx context.Context, limit 
 		WithContext(ctx).
 		Preload("Followings.Posts", func(db *gorm.DB) *gorm.DB {
 			return db.
+				Where("created_at < ?", time.Now().Add(-(24 * time.Hour)).Format(time.RFC3339Nano)).
 				Order("created_at DESC").
 				Limit(limit)
 		}).
