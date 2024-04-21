@@ -62,6 +62,7 @@ type User struct {
 	Username    string `json:"username" gorm:"not null"`
 	Email       string `json:"-" gorm:"unique; not null"`
 	PictureLink string `json:"picture_link"`
+	Description string `json:"description"`
 
 	Posts      []Post `json:"posts" gorm:"foreignKey:UserID;references:ID"`   // "user" has many "posts"
 	LikedPosts []Post `json:"liked_posts" gorm:"many2many:user_liked_posts;"` // "user" many to many "(liked) posts"

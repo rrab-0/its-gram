@@ -203,10 +203,11 @@ func (r gormRepository) GetUserHomepageCursor(ctx context.Context, cursor string
 	}, nil
 }
 
-func (r gormRepository) UpdateUserProfile(ctx context.Context, id, username, picture string) (internal.User, error) {
+func (r gormRepository) UpdateUserProfile(ctx context.Context, id, username, picture, description string) (internal.User, error) {
 	var user internal.User
 	user.Username = username
 	user.PictureLink = picture
+	user.Description = description
 
 	err := r.db.
 		WithContext(ctx).

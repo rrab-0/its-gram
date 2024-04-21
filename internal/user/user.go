@@ -9,6 +9,7 @@ import (
 type UpdateUserProfileRequest struct {
 	Username    string `json:"username" binding:"required"`
 	PictureLink string `json:"picture_link" binding:"required"`
+	Description string `json:"description"`
 }
 
 type UserSearchRequest struct {
@@ -66,7 +67,7 @@ type Repository interface {
 	GetUserHomepageCursor(ctx context.Context, cursor string, limit int, id string) (*GetUserHomepageCursorQueryRes, error)
 
 	CreateUser(ctx context.Context, user internal.User) (internal.User, error)
-	UpdateUserProfile(ctx context.Context, id, username, picture string) (internal.User, error)
+	UpdateUserProfile(ctx context.Context, id, username, picture, description string) (internal.User, error)
 	DeleteUser(ctx context.Context, id string) (internal.User, error)
 
 	FollowOtherUser(ctx context.Context, userId, otherUserId string) error

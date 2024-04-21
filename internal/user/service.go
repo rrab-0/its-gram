@@ -78,7 +78,7 @@ func (s userService) GetUserHomepageCursor(ctx context.Context, reqUri internal.
 }
 
 func (s userService) UpdateUserProfile(ctx context.Context, reqUri internal.UserIdUriRequest, reqBody UpdateUserProfileRequest) (internal.User, error) {
-	user, err := s.repo.UpdateUserProfile(ctx, reqUri.UserId, reqBody.Username, reqBody.PictureLink)
+	user, err := s.repo.UpdateUserProfile(ctx, reqUri.UserId, reqBody.Username, reqBody.PictureLink, reqBody.Description)
 	if err != nil {
 		return internal.User{}, err
 	}

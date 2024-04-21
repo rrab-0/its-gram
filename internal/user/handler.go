@@ -381,7 +381,11 @@ func (h Handler) GetUserHomepageCursor(ctx *gin.Context) {
 }
 
 func (h Handler) UpdateUserProfile(ctx *gin.Context) {
-	var reqUri internal.UserIdUriRequest
+	var (
+		reqUri  internal.UserIdUriRequest
+		reqBody UpdateUserProfileRequest
+	)
+
 	if err := ctx.ShouldBindUri(&reqUri); err != nil {
 		ctx.AbortWithStatusJSON(http.StatusBadRequest, &internal.ErrorResponse{
 			Message: "Invalid request.",
@@ -390,7 +394,6 @@ func (h Handler) UpdateUserProfile(ctx *gin.Context) {
 		return
 	}
 
-	var reqBody UpdateUserProfileRequest
 	if err := ctx.ShouldBindJSON(&reqBody); err != nil {
 		ctx.AbortWithStatusJSON(http.StatusBadRequest, &internal.ErrorResponse{
 			Message: "Invalid request.",
