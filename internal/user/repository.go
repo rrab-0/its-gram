@@ -25,18 +25,22 @@ func NewRepository(db *gorm.DB) Repository {
 func (r gormRepository) CreateUser(ctx context.Context, user internal.User) (internal.User, error) {
 	err := r.db.
 		WithContext(ctx).
-		Clauses(clause.OnConflict{
-			Columns: []clause.Column{{Name: "email"}},
-			DoUpdates: clause.Assignments(map[string]interface{}{
-				"id":           user.ID,
-				"created_at":   time.Now(),
-				"updated_at":   time.Now(),
-				"deleted_at":   nil,
-				"username":     user.Username,
-				"email":        user.Email,
-				"picture_link": user.PictureLink,
-			}),
-		}).
+		Clauses(
+			clause.OnConflict{ // For delete acc, then register with same email
+				Columns: []clause.Column{{Name: "email"}},
+				DoUpdates: clause.Assignments(map[string]interface{}{
+					"id":           user.ID,
+					"created_at":   time.Now(),
+					"updated_at":   time.Now(),
+					"deleted_at":   nil,
+					"username":     user.Username,
+					"email":        user.Email,
+					"picture_link": user.PictureLink,
+				}),
+			}, clause.OnConflict{ // For login
+				Columns:   []clause.Column{{Name: "id"}},
+				DoNothing: true,
+			}).
 		Create(&user).
 		Error
 	if err != nil {
