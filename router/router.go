@@ -40,6 +40,10 @@ func Setup(r *gin.Engine, firebaseAuth *internal.FirebaseAuth, userHandler user.
 		validateToken = firebaseAuth.ValidateToken("")
 	}
 
+	r.GET("/hello", func(ctx *gin.Context) {
+		ctx.JSON(200, "world")
+	})
+
 	// NOTE: ":id" here is
 	// user_id from context which is,
 	// idToken.Claims["user_id"] from firebase auth idToken.
