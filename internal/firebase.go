@@ -9,6 +9,7 @@ import (
 	firebase "firebase.google.com/go"
 	"firebase.google.com/go/auth"
 	"github.com/gin-gonic/gin"
+	"github.com/spf13/viper"
 	"google.golang.org/api/option"
 )
 
@@ -16,8 +17,14 @@ type FirebaseApp struct {
 	App *firebase.App
 }
 
-func NewFirebaseApp(serviceAccPath string) (*FirebaseApp, error) {
-	firebaseOpt := option.WithCredentialsFile(serviceAccPath)
+func NewFirebaseApp(serviceAcc string) (*FirebaseApp, error) {
+	var firebaseOpt option.ClientOption
+	if viper.GetString("ENV") == "AWS" {
+		firebaseOpt = option.WithCredentialsJSON([]byte(serviceAcc))
+	} else {
+		firebaseOpt = option.WithCredentialsFile(serviceAcc)
+	}
+
 	app, err := firebase.NewApp(context.Background(), nil, firebaseOpt)
 	if err != nil {
 		return nil, err

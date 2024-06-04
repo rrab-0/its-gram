@@ -1,13 +1,12 @@
 package router
 
 import (
-	"os"
-
 	"github.com/gin-contrib/cors"
 	"github.com/gin-gonic/gin"
 	"github.com/rrab-0/its-gram/internal"
 	"github.com/rrab-0/its-gram/internal/post"
 	"github.com/rrab-0/its-gram/internal/user"
+	"github.com/spf13/viper"
 
 	swaggerFiles "github.com/swaggo/files"
 	ginSwagger "github.com/swaggo/gin-swagger"
@@ -29,10 +28,10 @@ func Setup(r *gin.Engine, firebaseAuth *internal.FirebaseAuth, userHandler user.
 		validateToken         gin.HandlerFunc
 	)
 
-	if os.Getenv("ENV") == "LOCAL_DEV" {
+	if viper.GetString("ENV") == "LOCAL_DEV" {
 		validateRegisterToken = firebaseAuth.ValidateDevToken("REGISTER")
 		validateToken = firebaseAuth.ValidateDevToken("")
-	} else if os.Getenv("ENV") == "NGROK_DEV" {
+	} else if viper.GetString("ENV") == "NGROK_DEV" {
 		validateRegisterToken = firebaseAuth.ValidateNgrokDevToken("REGISTER")
 		validateToken = firebaseAuth.ValidateNgrokDevToken("")
 	} else {

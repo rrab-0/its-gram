@@ -3,9 +3,9 @@ package db
 import (
 	"fmt"
 	"log"
-	"os"
 
 	"github.com/rrab-0/its-gram/internal"
+	"github.com/spf13/viper"
 	"gorm.io/driver/postgres"
 	"gorm.io/gorm"
 )
@@ -20,11 +20,11 @@ type postgreSQL struct {
 
 func NewPostgreSQL() (postgreSQL, error) {
 	var (
-		DB_HOST     = os.Getenv("DB_HOST")
-		DB_USER     = os.Getenv("DB_USER")
-		DB_PASSWORD = os.Getenv("DB_PASSWORD")
-		DB_NAME     = os.Getenv("DB_NAME")
-		DB_PORT     = os.Getenv("DB_PORT")
+		DB_HOST     = viper.GetString("DB_HOST")
+		DB_USER     = viper.GetString("DB_USER")
+		DB_PASSWORD = viper.GetString("DB_PASSWORD")
+		DB_NAME     = viper.GetString("DB_NAME")
+		DB_PORT     = viper.GetString("DB_PORT")
 	)
 
 	connStr := fmt.Sprintf("host=%s user=%s password=%s dbname=%s port=%s sslmode=disable TimeZone=Asia/Shanghai",
@@ -36,7 +36,7 @@ func NewPostgreSQL() (postgreSQL, error) {
 	)
 
 	var gormConfig gorm.Config
-	if os.Getenv("ENV") == "LOCAL_DEV" {
+	if viper.GetString("ENV") == "LOCAL_DEV" {
 		gormConfig = gorm.Config{}
 	} else {
 		gormConfig = gorm.Config{
