@@ -13,6 +13,6 @@ RUN --mount=type=cache,target="/root/.cache/go-build" go build -o main ./cmd/mai
 FROM alpine
 WORKDIR /app
 COPY --from=builder /app/main /app
-# COPY --from=builder /app/.env /app
-# COPY --from=builder /app/firebase-service-account-key.json /app/firebase-service-account-key.json
-ENTRYPOINT [ "./main", "AWS" ]
+COPY --from=builder /app/.env /app
+COPY --from=builder /app/firebase-service-account-key.json /app/firebase-service-account-key.json
+ENTRYPOINT [ "./main", "DEV" ]

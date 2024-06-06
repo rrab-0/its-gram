@@ -1,15 +1,16 @@
 package router
 
 import (
+	"net/http"
+
 	"github.com/gin-contrib/cors"
 	"github.com/gin-gonic/gin"
 	"github.com/rrab-0/its-gram/internal"
 	"github.com/rrab-0/its-gram/internal/post"
 	"github.com/rrab-0/its-gram/internal/user"
 	"github.com/spf13/viper"
-
-	swaggerFiles "github.com/swaggo/files"
-	ginSwagger "github.com/swaggo/gin-swagger"
+	// swaggerFiles "github.com/swaggo/files"
+	// ginSwagger "github.com/swaggo/gin-swagger"
 )
 
 func Setup(r *gin.Engine, firebaseAuth *internal.FirebaseAuth, userHandler user.Handler, postHandler post.Handler) {
@@ -21,7 +22,7 @@ func Setup(r *gin.Engine, firebaseAuth *internal.FirebaseAuth, userHandler user.
 		AllowCredentials: true,
 	}))
 
-	r.GET("/swagger/*any", ginSwagger.WrapHandler(swaggerFiles.Handler))
+	// r.GET("/swagger/*any", ginSwagger.WrapHandler(swaggerFiles.Handler))
 
 	var (
 		validateRegisterToken gin.HandlerFunc
@@ -32,12 +33,16 @@ func Setup(r *gin.Engine, firebaseAuth *internal.FirebaseAuth, userHandler user.
 		validateRegisterToken = firebaseAuth.ValidateDevToken("REGISTER")
 		validateToken = firebaseAuth.ValidateDevToken("")
 	} else if viper.GetString("ENV") == "NGROK_DEV" {
-		validateRegisterToken = firebaseAuth.ValidateNgrokDevToken("REGISTER")
-		validateToken = firebaseAuth.ValidateNgrokDevToken("")
+		// validateRegisterToken = firebaseAuth.ValidateNgrokDevToken("REGISTER")
+		// validateToken = firebaseAuth.ValidateNgrokDevToken("")
+		validateRegisterToken = firebaseAuth.ValidateToken("REGISTER")
+		validateToken = firebaseAuth.ValidateToken("")
 	} else {
 		validateRegisterToken = firebaseAuth.ValidateToken("REGISTER")
 		validateToken = firebaseAuth.ValidateToken("")
 	}
+
+	r.StaticFS("/static", http.Dir("web"))
 
 	r.GET("/hello", func(ctx *gin.Context) {
 		ctx.JSON(200, "world")

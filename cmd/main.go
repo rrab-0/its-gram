@@ -91,7 +91,7 @@ func runServer(ctx context.Context, r *gin.Engine) error {
 		return r.Run(viper.GetString("DEV_HOST") + ":" + viper.GetString("DEV_PORT"))
 	}
 
-	if env == "AWS" {
+	if env == "AWS" || env == "" {
 		return r.Run(":" + viper.GetString("DEV_PORT"))
 	}
 
