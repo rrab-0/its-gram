@@ -1,8 +1,6 @@
 package router
 
 import (
-	"net/http"
-
 	"github.com/gin-contrib/cors"
 	"github.com/gin-gonic/gin"
 	"github.com/rrab-0/its-gram/internal"
@@ -42,7 +40,7 @@ func Setup(r *gin.Engine, firebaseAuth *internal.FirebaseAuth, userHandler user.
 		validateToken = firebaseAuth.ValidateToken("")
 	}
 
-	r.StaticFS("/static", http.Dir("web"))
+	r.Static("/static", "./web")
 
 	r.GET("/hello", func(ctx *gin.Context) {
 		ctx.JSON(200, "world")

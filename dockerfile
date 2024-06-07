@@ -15,4 +15,5 @@ WORKDIR /app
 COPY --from=builder /app/main /app
 COPY --from=builder /app/.env /app
 COPY --from=builder /app/firebase-service-account-key.json /app/firebase-service-account-key.json
+COPY --from=builder /app/web /app/web
 ENTRYPOINT [ "./main", "DEV" ]

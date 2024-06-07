@@ -1,21 +1,25 @@
 version: "3.1"
 
+networks:
+    backend:
+        driver: bridge
+
 services:
     postgres:
-        # image: postgres
         image: 10.3.142.201:5000/5024201073-its-gram-postgres:latest
         restart: always
         environment:
-            POSTGRES_PASSWORD: ${DB_PASSWORD}
-            POSTGRES_DB: ${DB_NAME}
-        ports:
-            - 5432:${DB_PORT}
+            POSTGRES_PASSWORD: postgres
+            POSTGRES_DB: its-gram
+        networks:
+            - backend
 
     api:
-        # build: .
         image: 10.3.142.201:5000/5024201073-its-gram-api:latest
         restart: always
         ports:
-            - ${DEV_PORT}:${DEV_PORT}
+            - 8080:8080
         depends_on:
             - postgres
+        networks:
+            - backend
